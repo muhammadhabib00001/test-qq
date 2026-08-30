@@ -3,21 +3,80 @@ const path = require('path');
 const fs = require('fs');
 
 const { IS_VERCEL } = require('./config');
-const dbPath = IS_VERCEL 
-  ? '/tmp/database.sqlite' 
-  : path.resolve(__dirname, process.env.DATABASE_PATH || 'database.sqlite');
+let sqlite3;
+let db = null;
+let isMockDb = false;
 
-// Ensure db connection is initialized
-const db = new sqlite3.Database(dbPath, (err) => {
-  if (err) {
-    console.error('Database connection error:', err.message);
-  } else {
-    console.log('Connected to the SQLite database.');
+try {
+  sqlite3 = require('sqlite3').verbose();
+  const dbPath = IS_VERCEL 
+    ? '/tmp/database.sqlite' 
+    : path.resolve(__dirname, process.env.DATABASE_PATH || 'database.sqlite');
+  
+  db = new sqlite3.Database(dbPath, (err) => {
+    if (err) {
+      console.error('Database connection error:', err.message);
+    } else {
+      console.log('Connected to the SQLite database.');
+    }
+  });
+} catch (e) {
+  console.warn('SQLite3 native driver failed loading. Initializing mock serverless DB simulator.');
+  isMockDb = true;
+}
+
+// Mock in-memory database storage
+const mockStore = {
+  authors: [
+    { id: 1, name: 'Jane Doe', slug: 'jane-doe', bio: 'Senior Editor and Technical Writer with 10+ years of experience in the publishing industry.', role: 'Senior Editor', avatar: '/images/avatars/jane.jpg' },
+    { id: 2, name: 'John Smith', slug: 'john-smith', bio: 'Travel blogger, foodie and freelance lifestyle journalist based in San Francisco.', role: 'Contributing Writer', avatar: '/images/avatars/john.jpg' }
+  ],
+  articles: [],
+  topics: [],
+  logs: [],
+  settings: {
+    articles_per_day: '2',
+    auto_image_gen: 'true',
+    auto_seo_gen: 'true',
+    internal_linking: 'true',
+    approval_workflow: 'true',
+    publishing_schedule: '09:00',
+    categories: 'Technology,Business,Lifestyle,Travel,Entertainment,Food,Home & Garden,Education,How-To'
   }
-});
+};
 
 // Run query helper function wrapped in Promise
 function run(sql, params = []) {
+  if (isMockDb) {
+    console.log('[MockDB Run]', sql, params);
+    // Basic mock handlers
+    if (sql.includes('INSERT INTO topics')) {
+      mockStore.topics.push({ id: mockStore.topics.length + 1, title: params[0], category: params[1], source_url: params[2], status: params[3] || 'discovered', created_at: new Date() });
+    } else if (sql.includes('INSERT INTO articles')) {
+      mockStore.articles.push({
+        id: mockStore.articles.length + 1,
+        title: params[0], slug: params[1], excerpt: params[2], body: params[3], category: params[4], tags: params[5],
+        author_id: params[6], featured_image: params[7], status: params[8], seo_title: params[9], seo_description: params[10],
+        image_alt: params[11], sources: params[12], faq: params[13], views: 0, created_at: new Date(), updated_at: new Date()
+      });
+    } else if (sql.includes('INSERT INTO logs')) {
+      mockStore.logs.push({ level: params[0], message: params[1], created_at: new Date() });
+    } else if (sql.includes('UPDATE settings')) {
+      mockStore.settings[params[1]] = params[0];
+    } else if (sql.includes('UPDATE topics SET status')) {
+      const topic = mockStore.topics.find(t => t.id === params[1]);
+      if (topic) topic.status = params[0];
+    } else if (sql.includes('UPDATE articles SET title')) {
+      const art = mockStore.articles.find(a => a.id === params[9]);
+      if (art) {
+        art.title = params[0]; art.excerpt = params[1]; art.body = params[2]; art.category = params[3];
+        art.author_id = params[4]; art.seo_title = params[5]; art.seo_description = params[6];
+        art.image_alt = params[7]; art.status = params[8]; art.updated_at = new Date();
+      }
+    }
+    return Promise.resolve({ lastID: 1 });
+  }
+
   return new Promise((resolve, reject) => {
     db.run(sql, params, function (err) {
       if (err) reject(err);
@@ -28,6 +87,57 @@ function run(sql, params = []) {
 
 // Get helper function wrapped in Promise
 function get(sql, params = []) {
+  if (isMockDb) {
+    console.log('[MockDB Get]', sql, params);
+    if (sql.includes('SELECT COUNT(*) as count FROM authors')) {
+      return Promise.resolve({ count: mockStore.authors.length });
+    } else if (sql.includes('SELECT COUNT(*) as count FROM settings')) {
+      return Promise.resolve({ count: Object.keys(mockStore.settings).length });
+    } else if (sql.includes('SELECT COUNT(*) as count FROM topics')) {
+      return Promise.resolve({ count: mockStore.topics.length });
+    } else if (sql.includes('SELECT COUNT(*) as count FROM articles WHERE status = \'draft\'')) {
+      return Promise.resolve({ count: mockStore.articles.filter(a => a.status === 'draft').length });
+    } else if (sql.includes('SELECT COUNT(*) as count FROM articles WHERE status = \'published\'')) {
+      return Promise.resolve({ count: mockStore.articles.filter(a => a.status === 'published').length });
+    } else if (sql.includes('SELECT COUNT(*) as count FROM articles')) {
+      return Promise.resolve({ count: mockStore.articles.length });
+    } else if (sql.includes('SELECT value FROM settings WHERE key =')) {
+      // Find key in sql e.g. key = 'categories'
+      const match = sql.match(/key = '([^']+)'/) || sql.match(/key = \?/);
+      const key = match ? (match[1] === '?' ? params[0] : match[1]) : '';
+      return Promise.resolve({ value: mockStore.settings[key] || '' });
+    } else if (sql.includes('SELECT a.*, aut.name as author_name FROM articles a LEFT JOIN authors aut ON a.author_id = aut.id WHERE a.status = \'published\' ORDER BY a.created_at DESC LIMIT 1')) {
+      const art = mockStore.articles.filter(a => a.status === 'published')[0];
+      if (art) {
+        const aut = mockStore.authors.find(a => a.id === art.author_id) || {};
+        return Promise.resolve({ ...art, author_name: aut.name });
+      }
+      return Promise.resolve(null);
+    } else if (sql.includes('SELECT a.*, aut.name as author_name') && sql.includes('a.slug = ?')) {
+      const art = mockStore.articles.find(a => a.slug === params[0]);
+      if (art) {
+        const aut = mockStore.authors.find(a => a.id === art.author_id) || {};
+        return Promise.resolve({
+          ...art,
+          author_name: aut.name,
+          author_bio: aut.bio,
+          author_avatar: aut.avatar,
+          author_role: aut.role
+        });
+      }
+      return Promise.resolve(null);
+    } else if (sql.includes('SELECT * FROM authors WHERE slug = ?')) {
+      return Promise.resolve(mockStore.authors.find(a => a.slug === params[0]) || null);
+    } else if (sql.includes('SELECT * FROM articles WHERE id = ?')) {
+      return Promise.resolve(mockStore.articles.find(a => a.id === params[0]) || null);
+    } else if (sql.includes('SELECT id FROM topics WHERE status = \'discovered\'')) {
+      return Promise.resolve(mockStore.topics.find(t => t.status === 'discovered') || null);
+    } else if (sql.includes('SELECT id FROM topics WHERE title = ?')) {
+      return Promise.resolve(mockStore.topics.find(t => t.title === params[0]) || null);
+    }
+    return Promise.resolve(null);
+  }
+
   return new Promise((resolve, reject) => {
     db.get(sql, params, (err, row) => {
       if (err) reject(err);
@@ -38,6 +148,40 @@ function get(sql, params = []) {
 
 // All helper function wrapped in Promise
 function all(sql, params = []) {
+  if (isMockDb) {
+    console.log('[MockDB All]', sql, params);
+    if (sql.includes('SELECT * FROM settings')) {
+      return Promise.resolve(Object.keys(mockStore.settings).map(k => ({ key: k, value: mockStore.settings[k] })));
+    } else if (sql.includes('SELECT * FROM authors')) {
+      return Promise.resolve(mockStore.authors);
+    } else if (sql.includes('SELECT * FROM topics')) {
+      return Promise.resolve(mockStore.topics.slice(-10));
+    } else if (sql.includes('SELECT * FROM logs')) {
+      return Promise.resolve(mockStore.logs.slice(-10));
+    } else if (sql.includes('SELECT a.*, aut.name as author_name FROM articles a LEFT JOIN authors aut ON a.author_id = aut.id WHERE a.status = \'draft\'')) {
+      return Promise.resolve(mockStore.articles.filter(a => a.status === 'draft').map(art => {
+        const aut = mockStore.authors.find(a => a.id === art.author_id) || {};
+        return { ...art, author_name: aut.name };
+      }));
+    } else if (sql.includes('SELECT a.*, aut.name as author_name FROM articles a LEFT JOIN authors aut ON a.author_id = aut.id WHERE a.status = \'published\'') || sql.includes('SELECT a.*, aut.name as author_name FROM articles a')) {
+      let filtered = mockStore.articles;
+      if (sql.includes('a.category = ?')) {
+        filtered = filtered.filter(a => a.category === params[0]);
+      }
+      return Promise.resolve(filtered.map(art => {
+        const aut = mockStore.authors.find(a => a.id === art.author_id) || {};
+        return { ...art, author_name: aut.name };
+      }));
+    } else if (sql.includes('SELECT * FROM articles WHERE category = ?')) {
+      return Promise.resolve(mockStore.articles.filter(a => a.category === params[0] && a.id !== params[1] && a.status === 'published').slice(0, 3));
+    } else if (sql.includes('SELECT * FROM articles WHERE author_id = ?')) {
+      return Promise.resolve(mockStore.articles.filter(a => a.author_id === params[0] && a.status === 'published'));
+    } else if (sql.includes('SELECT * FROM articles WHERE status = \'published\'')) {
+      return Promise.resolve(mockStore.articles.filter(a => a.status === 'published').slice(0, 5));
+    }
+    return Promise.resolve([]);
+  }
+
   return new Promise((resolve, reject) => {
     db.all(sql, params, (err, rows) => {
       if (err) reject(err);
