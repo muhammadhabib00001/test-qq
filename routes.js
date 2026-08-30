@@ -215,7 +215,13 @@ router.post('/admin/login', (req, res) => {
   
   if (username === targetUser && password === targetPass) {
     req.session.isAdmin = true;
-    return res.redirect('/admin');
+    req.session.save((err) => {
+      if (err) {
+        console.error('Session save error:', err);
+      }
+      res.redirect('/admin');
+    });
+    return;
   }
   res.render('admin/login', { pageTitle: 'Admin Login', error: 'Invalid username or password' });
 });
