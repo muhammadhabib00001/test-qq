@@ -20,5 +20,8 @@
     "sharp": "^0.35.4",
     "sqlite3": "^6.0.1",
     "xmlbuilder2": "^4.0.3"
-  }
+  },
+  "bundleDependencies": [
+    "sqlite3"
+  ]
 }
