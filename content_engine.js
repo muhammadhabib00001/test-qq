@@ -92,14 +92,24 @@ async function generateArticleFromTopic(topicId) {
     const authors = await db.all('SELECT id FROM authors') || [{ id: 1 }];
     const randomAuthor = authors[Math.floor(Math.random() * authors.length)];
 
-    let slug = topic.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-    let seoTitle = autoSeo ? `${topic.title} | The Editorial Magazine` : topic.title;
-    let seoDescription = `Learn about ${topic.title} in this expert guided article. We explore the latest insights and step-by-step guidance.`;
-    let imageAlt = `Featured graphic representation for ${topic.title}`;
+    // Capitalize title properly if short keyword
+    const formattedKeyword = topic.title
+      .split(' ')
+      .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+      .join(' ');
+    
+    let topicTitle = formattedKeyword.length < 15 
+      ? `The Ultimate Guide to ${formattedKeyword} (2026): Key Strategies & Expert Insights` 
+      : formattedKeyword;
+
+    let slug = topicTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    let seoTitle = autoSeo ? `${topicTitle} | The Editorial Magazine` : topicTitle;
+    let seoDescription = `Learn about ${topicTitle} in this expert guided article. We explore the latest insights and step-by-step guidance.`;
+    let imageAlt = `Featured graphic representation for ${topicTitle}`;
     let body = '';
     let faq = [];
     let sources = [];
-    let excerpt = `An insightful look at ${topic.title} to optimize your workflow and increase general knowledge.`;
+    let excerpt = `An insightful look at ${topicTitle} to optimize your workflow and increase general knowledge.`;
 
     const apiKey = process.env.GEMINI_API_KEY;
 
@@ -114,25 +124,29 @@ async function generateArticleFromTopic(topicId) {
       console.log('Generating content via Google Gemini API...');
       const ai = new GoogleGenAI({ apiKey });
       
-      const prompt = `You are a world-class Senior SEO Strategist and Content Editor. Write an in-depth, authoritative, 1500-word SEO-optimized pillar guide on: "${topic.title}" in the category "${topic.category}".
+      const prompt = `You are a world-class Senior SEO Strategist and Content Editor. Write an in-depth, authoritative, 1500-word SEO-optimized pillar guide based on the target search phrase: "${topic.title}" in the category "${topic.category}".
 
 CRITICAL SEO & STRUCTURAL REQUIREMENTS:
-1. TARGET FEATURED SNIPPET (Position 0 Optimization):
-   - At the beginning of the "body", include a dedicated featured snippet box formatted as:
-     <div class="bg-indigo-50 border-l-4 border-indigo-600 p-5 my-6 rounded-r-xl"><h3 class="text-indigo-900 font-bold text-base mb-2">⚡ Quick Summary & Key Takeaways</h3><p class="text-gray-800 text-sm leading-relaxed mb-3">[A concise 45-55 word direct definition answer addressing "${topic.title}"]</p><ul class="list-disc pl-5 text-xs text-gray-700 space-y-1"><li><strong>Core Focus:</strong> [Key benefit]</li><li><strong>Ideal For:</strong> [Target audience]</li><li><strong>Estimated Impact:</strong> [Quantifiable metric]</li></ul></div>
+1. "articleTitle":
+   - Write an engaging, high-CTR, complete editorial headline for the article (e.g., "The Ultimate Laptop Buying Guide (2026): Best Picks, Specs & Expert Tips" instead of just "buy laptop").
+   - Maximum 60-70 characters. Must naturally feature the core keyword.
 
-2. HEADING HIERARCHY (H2 to H5 structure):
+2. TARGET FEATURED SNIPPET (Position 0 Optimization):
+   - At the beginning of the "body", include a dedicated featured snippet box formatted as:
+     <div class="bg-indigo-50 border-l-4 border-indigo-600 p-5 my-6 rounded-r-xl not-prose"><h3 class="text-indigo-900 font-bold text-base mb-2">⚡ Quick Summary & Key Takeaways</h3><p class="text-gray-800 text-sm leading-relaxed mb-3">[A concise 45-55 word direct definition answer addressing "${topic.title}"]</p><ul class="list-disc pl-5 text-xs text-gray-700 space-y-1"><li><strong>Core Focus:</strong> [Key benefit]</li><li><strong>Ideal For:</strong> [Target audience]</li><li><strong>Estimated Impact:</strong> [Quantifiable metric]</li></ul></div>
+
+3. HEADING HIERARCHY (H2 to H5 structure):
    - Organize the article cleanly with logical heading progression:
      * <h2> Main Pillar Topics (6 distinct sections)
      * <h3> Sub-frameworks and Specific Core Components within sections
      * <h4> Technical Steps, Tool Implementations, or Case Analyses
      * <h5> Specific Implementation Tips or Micro-notes where appropriate
 
-3. TOTAL WORD COUNT & QUALITY:
+4. TOTAL WORD COUNT & QUALITY:
    - The "body" HTML content MUST contain at least 1200 to 1800 words.
    - Include comparison <table> elements, ordered <ol> implementation checklists, bolded key phrases (<strong>), and contextual paragraphs.
 
-4. INTERNAL LINKING REQUIREMENT:
+5. INTERNAL LINKING REQUIREMENT:
    ${internalLinkGuide}
 
 SECTIONS TO COVER IN "body":
@@ -144,7 +158,8 @@ SECTIONS TO COVER IN "body":
 - <h2>6. Future Trends, Emerging Technologies & 5-Year Strategic Outlook</h2> (with <h3> predictive outlook and <h5> expert summary)
 
 Also generate:
-- "seoTitle": Compelling CTR Title with Primary Keyword and Year 2026 (50-60 chars)
+- "articleTitle": Complete, high-CTR editorial Title for the article (50-70 chars)
+- "seoTitle": Keyword-rich Title with Primary Keyword and Year 2026 (50-60 chars)
 - "seoDescription": High-CTR Search Intent Meta Description (145-160 chars)
 - "focusKeyword": Primary target SEO keyword phrase
 - "faq": Array of 4 comprehensive FAQs with 50+ word direct answers each (formatted for Google FAQ Schema).
@@ -160,6 +175,7 @@ Also generate:
             responseSchema: {
               type: 'OBJECT',
               properties: {
+                articleTitle: { type: 'STRING' },
                 excerpt: { type: 'STRING' },
                 body: { type: 'STRING' },
                 seoTitle: { type: 'STRING' },
@@ -189,7 +205,7 @@ Also generate:
                   }
                 }
               },
-              required: ['excerpt', 'body', 'seoTitle', 'seoDescription', 'imageAlt', 'faq', 'sources']
+              required: ['articleTitle', 'excerpt', 'body', 'seoTitle', 'seoDescription', 'imageAlt', 'faq', 'sources']
             }
           }
         });
@@ -197,6 +213,7 @@ Also generate:
         const rawText = response.text ? response.text.trim() : '';
         const data = JSON.parse(rawText);
 
+        if (data.articleTitle) topicTitle = data.articleTitle;
         if (data.body) body = data.body;
         if (data.excerpt) excerpt = data.excerpt;
         if (data.seoTitle) seoTitle = data.seoTitle;
@@ -338,11 +355,13 @@ Also generate:
     };
     const finalImageUrl = categoryPhotos[topic.category] || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80';
 
+    slug = topicTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+
     await db.run(
       `INSERT INTO articles (title, slug, excerpt, body, category, tags, author_id, featured_image, status, seo_title, seo_description, image_alt, sources, faq)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        topic.title,
+        topicTitle,
         slug,
         excerpt,
         body,

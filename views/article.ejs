@@ -31,8 +31,12 @@
       
       <div class="flex items-center justify-between py-6 border-y border-gray-200">
         <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-full bg-gray-200 overflow-hidden">
-            <img src="<%= article.author_avatar %>" alt="<%= article.author_name %>" class="w-full h-full object-cover">
+          <div class="w-10 h-10 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-sm overflow-hidden flex-shrink-0">
+            <% if (article.author_avatar && article.author_avatar.startsWith('http')) { %>
+              <img src="<%= article.author_avatar %>" alt="<%= article.author_name %>" class="w-full h-full object-cover">
+            <% } else { %>
+              <%= (article.author_name || 'E').charAt(0).toUpperCase() %>
+            <% } %>
           </div>
           <div>
             <a href="/author/<%= article.author_name.toLowerCase().replace(/ /g, '-') %>" class="font-bold text-gray-900 hover:text-indigo-600 transition"><%= article.author_name %></a>
