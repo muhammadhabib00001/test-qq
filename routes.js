@@ -35,7 +35,8 @@ router.get('/', async (req, res, next) => {
     const featured = await db.get("SELECT a.*, aut.name as author_name FROM articles a LEFT JOIN authors aut ON a.author_id = aut.id WHERE a.status = 'published' ORDER BY a.created_at DESC LIMIT 1");
     const latest = await db.all("SELECT a.*, aut.name as author_name FROM articles a LEFT JOIN authors aut ON a.author_id = aut.id WHERE a.status = 'published' ORDER BY a.created_at DESC LIMIT 6");
     const popular = await db.all("SELECT * FROM articles WHERE status = 'published' ORDER BY views DESC LIMIT 5");
-    const categories = (await db.get("SELECT value FROM settings WHERE key = 'categories'")).value.split(',');
+    const categoriesSetting = await db.get("SELECT value FROM settings WHERE key = 'categories'");
+    const categories = (categoriesSetting ? categoriesSetting.value : 'Technology,Business,Lifestyle,Travel,Entertainment,Food,Home & Garden,Education,How-To').split(',');
 
     res.render('index', {
       featured,
