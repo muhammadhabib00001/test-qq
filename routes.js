@@ -383,16 +383,17 @@ router.post('/admin/trigger-automation', isAdmin, async (req, res, next) => {
   }
 });
 
-// Instant Custom Keyword Generator Route
+// Instant Custom Keyword Generator Route (Supports Auto Publish & Manual Draft mode)
 router.post('/admin/generate-keyword', isAdmin, async (req, res, next) => {
-  const { keyword, category } = req.body;
+  const { keyword, category, mode } = req.body;
   if (!keyword) return res.redirect('/admin');
 
   try {
     const selectedCategory = category || 'Technology';
+    const isAutoPublish = mode === 'auto';
     
     // 1. Insert topic
-    const topicResult = await db.run(
+    await db.run(
       "INSERT INTO topics (title, category, source_url, status) VALUES (?, ?, ?, ?)",
       [keyword.trim(), selectedCategory, 'https://custom-keyword', 'discovered']
     );
@@ -404,11 +405,14 @@ router.post('/admin/generate-keyword', isAdmin, async (req, res, next) => {
       // 3. Generate 1000-1500 word AI article + high-res image
       await contentEngine.generateArticleFromTopic(topic.id);
       
-      // 4. Set latest generated draft to published status
-      await db.run("UPDATE articles SET status = 'published' WHERE status = 'draft'");
+      // 4. If Auto Publish mode selected, set latest draft to published
+      if (isAutoPublish) {
+        await db.run("UPDATE articles SET status = 'published' WHERE status = 'draft'");
+      }
     }
 
-    res.redirect('/admin');
+    // Redirect to review queue if manual draft, or dashboard if auto published
+    res.redirect(isAutoPublish ? '/admin' : '/admin/review');
   } catch (err) {
     next(err);
   }

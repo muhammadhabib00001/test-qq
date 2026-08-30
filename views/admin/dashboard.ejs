@@ -9,13 +9,13 @@
     <p class="text-indigo-200 text-sm mb-4">
       Enter any topic or keyword below. Confirming will instantly generate a comprehensive 1000–1500 word SEO-optimized article complete with a high-resolution featured image and publish it directly to your site.
     </p>
-    <form action="/admin/generate-keyword" method="POST" class="flex flex-col sm:flex-row gap-3">
+    <form action="/admin/generate-keyword" method="POST" class="flex flex-col sm:flex-row gap-3 items-center">
       <input 
         type="text" 
         name="keyword" 
         placeholder="Enter keyword or topic (e.g. Artificial Intelligence in Healthcare 2026)" 
         required 
-        class="flex-grow px-4 py-3 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-400 font-medium text-sm"
+        class="w-full sm:w-auto flex-grow px-4 py-3 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-400 font-medium text-sm"
       >
       <select name="category" class="px-4 py-3 rounded-xl text-gray-900 focus:outline-none font-medium text-sm bg-white">
         <option value="Technology">Technology</option>
@@ -25,12 +25,27 @@
         <option value="Education">Education</option>
         <option value="Home & Garden">Home & Garden</option>
       </select>
-      <button 
-        type="submit" 
-        class="bg-amber-400 hover:bg-amber-300 text-gray-900 font-bold px-6 py-3 rounded-xl transition flex items-center justify-center gap-2 text-sm flex-shrink-0 shadow"
-      >
-        <i class="fa-solid fa-paper-plane"></i> Generate & Post Article
-      </button>
+
+      <div class="flex gap-2 flex-shrink-0 w-full sm:w-auto">
+        <button 
+          type="submit" 
+          name="mode" 
+          value="auto" 
+          class="flex-1 sm:flex-initial bg-amber-400 hover:bg-amber-300 text-gray-900 font-bold px-5 py-3 rounded-xl transition flex items-center justify-center gap-2 text-sm shadow"
+          title="Instantly generate and publish live to site"
+        >
+          <i class="fa-solid fa-bolt"></i> Auto Publish Live
+        </button>
+        <button 
+          type="submit" 
+          name="mode" 
+          value="manual" 
+          class="flex-1 sm:flex-initial bg-indigo-700 hover:bg-indigo-600 text-white font-bold px-5 py-3 rounded-xl transition flex items-center justify-center gap-2 text-sm border border-indigo-500 shadow"
+          title="Generate draft and save to Editorial Review Queue"
+        >
+          <i class="fa-solid fa-file-pen"></i> Save as Draft (Manual)
+        </button>
+      </div>
     </form>
   </div>
 </div>
