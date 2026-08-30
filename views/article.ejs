@@ -1,0 +1,172 @@
+<%- include('partials/header') %>
+
+<div class="bg-gray-50 py-12">
+  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+    
+    <!-- Breadcrumbs -->
+    <nav class="flex text-xs text-gray-500 mb-6" aria-label="Breadcrumb">
+      <ol class="inline-flex items-center space-x-1 md:space-x-3">
+        <li class="inline-flex items-center">
+          <a href="/" class="hover:text-indigo-600">Home</a>
+        </li>
+        <li>
+          <div class="flex items-center">
+            <i class="fa-solid fa-chevron-right text-[10px] mx-2 text-gray-400"></i>
+            <a href="/category/<%= article.category %>" class="hover:text-indigo-600 capitalize"><%= article.category %></a>
+          </div>
+        </li>
+        <li aria-current="page">
+          <div class="flex items-center">
+            <i class="fa-solid fa-chevron-right text-[10px] mx-2 text-gray-400"></i>
+            <span class="text-gray-400 font-medium truncate max-w-[200px]"><%= article.title %></span>
+          </div>
+        </li>
+      </ol>
+    </nav>
+
+    <!-- Article Header -->
+    <div class="mb-8">
+      <span class="text-xs font-semibold text-indigo-600 uppercase tracking-wider block mb-2"><%= article.category %></span>
+      <h1 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900 tracking-tight leading-tight mb-6"><%= article.title %></h1>
+      
+      <div class="flex items-center justify-between py-6 border-y border-gray-200">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full bg-gray-200 overflow-hidden">
+            <img src="<%= article.author_avatar %>" alt="<%= article.author_name %>" class="w-full h-full object-cover">
+          </div>
+          <div>
+            <a href="/author/<%= article.author_name.toLowerCase().replace(/ /g, '-') %>" class="font-bold text-gray-900 hover:text-indigo-600 transition"><%= article.author_name %></a>
+            <span class="text-xs text-gray-500 block"><%= article.author_role %></span>
+          </div>
+        </div>
+        <div class="text-right text-xs text-gray-500">
+          <span>Published on <%= new Date(article.created_at).toLocaleDateString() %></span>
+          <% if (article.updated_at && article.updated_at !== article.created_at) { %>
+            <span class="block text-indigo-600 font-medium mt-1">Updated on <%= new Date(article.updated_at).toLocaleDateString() %></span>
+          <% } %>
+        </div>
+      </div>
+    </div>
+
+    <!-- Featured Image -->
+    <div class="relative aspect-[16/9] w-full rounded-2xl overflow-hidden shadow-md mb-12 bg-gray-100">
+      <img src="<%= article.featured_image %>" alt="<%= article.image_alt %>" class="w-full h-full object-cover" fetchpriority="high">
+    </div>
+
+    <!-- Body Layout with Table of Contents -->
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-12">
+      
+      <!-- Table of Contents Sidebar -->
+      <aside class="lg:col-span-1 hidden lg:block sticky top-24 self-start">
+        <div class="border-l-2 border-indigo-100 pl-4 py-2">
+          <h3 class="text-xs font-bold text-gray-900 uppercase tracking-wider mb-4">Table of Contents</h3>
+          <ul id="toc-list" class="space-y-3 text-sm text-gray-500">
+            <!-- Dynamically populated by JS -->
+          </ul>
+        </div>
+      </aside>
+
+      <!-- Main Body Text -->
+      <div class="lg:col-span-3 prose max-w-none text-gray-800 leading-relaxed space-y-6" id="article-body">
+        <%- article.body %>
+
+        <!-- Sources Section -->
+        <% if (sources && sources.length > 0) { %>
+          <div class="mt-16 pt-8 border-t border-gray-200">
+            <h3 class="text-lg font-bold text-gray-950 mb-4"><i class="fa-solid fa-book-open text-gray-500 mr-2"></i>Sources & References</h3>
+            <ul class="list-disc pl-5 space-y-2 text-sm text-gray-600">
+              <% sources.forEach(source => { %>
+                <li>
+                  <a href="<%= source.url %>" target="_blank" rel="noopener noreferrer" class="text-indigo-600 hover:underline">
+                    <%= source.name %>
+                  </a>
+                </li>
+              <% }) %>
+            </ul>
+          </div>
+        <% } %>
+
+        <!-- FAQ Section -->
+        <% if (faq && faq.length > 0) { %>
+          <div class="mt-16 pt-8 border-t border-gray-200">
+            <h3 class="text-lg font-bold text-gray-950 mb-6"><i class="fa-solid fa-circle-question text-gray-500 mr-2"></i>Frequently Asked Questions</h3>
+            <div class="space-y-4">
+              <% faq.forEach((item, index) => { %>
+                <div class="bg-gray-100 rounded-xl p-6">
+                  <h4 class="font-bold text-gray-900 mb-2"><%= item.q %></h4>
+                  <p class="text-sm text-gray-700 leading-relaxed"><%= item.a %></p>
+                </div>
+              <% }) %>
+            </div>
+          </div>
+        <% } %>
+
+        <!-- Author Bio Card -->
+        <div class="mt-16 bg-white rounded-2xl p-8 border border-gray-150 shadow-sm flex items-center gap-6">
+          <div class="w-16 h-16 rounded-full bg-gray-200 overflow-hidden flex-shrink-0">
+            <img src="<%= article.author_avatar %>" alt="<%= article.author_name %>" class="w-full h-full object-cover">
+          </div>
+          <div>
+            <h4 class="font-bold text-gray-950 text-base">About the Author: <%= article.author_name %></h4>
+            <p class="text-sm text-gray-600 mt-2 leading-relaxed"><%= article.author_bio %></p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Related Articles -->
+    <% if (related && related.length > 0) { %>
+      <div class="mt-20 pt-12 border-t border-gray-200">
+        <h3 class="text-xl font-bold text-gray-900 mb-8">Related Stories</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <% related.forEach(rel => { %>
+            <div class="bg-white rounded-xl shadow-sm border border-gray-150 overflow-hidden flex flex-col justify-between hover:shadow-md transition">
+              <a href="/article/<%= rel.slug %>" class="block aspect-[16/10] bg-gray-100 overflow-hidden">
+                <img src="<%= rel.featured_image %>" alt="<%= rel.image_alt %>" class="w-full h-full object-cover" loading="lazy">
+              </a>
+              <div class="p-5 flex-grow">
+                <h4 class="font-bold text-gray-900 leading-snug line-clamp-2">
+                  <a href="/article/<%= rel.slug %>" class="hover:text-indigo-600 transition"><%= rel.title %></a>
+                </h4>
+              </div>
+            </div>
+          <% }) %>
+        </div>
+      </div>
+    <% } %>
+
+  </div>
+</div>
+
+<!-- Table of Contents Script -->
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const headings = document.querySelectorAll('#article-body h2, #article-body h3');
+    const tocList = document.getElementById('toc-list');
+    
+    headings.forEach((heading, index) => {
+      // Add id to headings if not exist
+      const id = 'heading-' + index;
+      heading.id = id;
+
+      const li = document.createElement('li');
+      const a = document.createElement('a');
+      a.href = '#' + id;
+      a.textContent = heading.textContent;
+      a.className = 'hover:text-indigo-600 transition cursor-pointer';
+      
+      // Indent nested headings
+      if (heading.tagName === 'H3') {
+        a.className += ' pl-4 text-xs';
+      } else {
+        a.className += ' text-sm font-medium';
+      }
+
+      li.appendChild(a);
+      tocList.appendChild(li);
+    });
+  });
+</script>
+
+<%- include('partials/footer') %>

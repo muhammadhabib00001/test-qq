@@ -1,0 +1,19 @@
+# Node dependency folders
+node_modules/
+
+# Local databases and locks
+*.sqlite
+*.sqlite-journal
+*.db
+
+# Environment variables containing credentials
+.env
+
+# Logs and runtime files
+logs/
+*.log
+npm-debug.log*
+
+# OS specific files
+.DS_Store
+Thumbs.db

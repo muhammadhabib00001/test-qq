@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= pageTitle %> | Editorial Admin</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-100 font-sans text-gray-900 flex min-h-screen">
+
+  <!-- Sidebar -->
+  <aside class="w-64 bg-gray-900 text-gray-300 flex flex-col justify-between flex-shrink-0">
+    <div>
+      <div class="h-16 flex items-center px-6 border-b border-gray-800 bg-gray-950">
+        <a href="/" class="text-white text-xl font-extrabold tracking-wider flex items-center gap-2">
+          <span class="bg-indigo-600 text-white px-2 py-0.5 rounded text-base">E</span>
+          <span>Editorial Admin</span>
+        </a>
+      </div>
+      <nav class="p-4 space-y-2">
+        <a href="/admin" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-800 text-sm font-medium transition">
+          <i class="fa-solid fa-chart-line text-gray-500"></i> Dashboard
+        </a>
+        <a href="/admin/review" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-800 text-sm font-medium transition">
+          <i class="fa-solid fa-file-signature text-gray-500"></i> Awaiting Review
+        </a>
+        <a href="/admin/settings" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-800 text-sm font-medium transition">
+          <i class="fa-solid fa-sliders text-gray-500"></i> Controls Panel
+        </a>
+        <a href="/" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-800 text-sm font-medium transition" target="_blank">
+          <i class="fa-solid fa-globe text-gray-500"></i> View Site
+        </a>
+      </nav>
+    </div>
+    <div class="p-4 border-t border-gray-800">
+      <a href="/admin/logout" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-red-900 hover:text-white text-sm font-medium transition">
+        <i class="fa-solid fa-right-from-bracket"></i> Sign Out
+      </a>
+    </div>
+  </aside>
+
+  <!-- Main Content Wrapper -->
+  <div class="flex-grow flex flex-col">
+    <header class="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-8">
+      <h1 class="text-lg font-bold text-gray-900"><%= pageTitle %></h1>
+      <div class="flex items-center gap-4">
+        <form action="/admin/trigger-automation" method="POST">
+          <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-indigo-700 transition">
+            <i class="fa-solid fa-wand-magic-sparkles mr-2"></i> Trigger Content Gen
+          </button>
+        </form>
+      </div>
+    </header>
+    <main class="p-8 flex-grow">

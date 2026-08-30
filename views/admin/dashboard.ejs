@@ -1,0 +1,124 @@
+<%- include('partials/admin_header') %>
+
+<!-- Statistics Grid -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+  <div class="bg-white rounded-xl p-6 border border-gray-200 shadow-sm flex items-center justify-between">
+    <div>
+      <span class="text-sm font-semibold text-gray-500">Topics Discovered</span>
+      <h3 class="text-3xl font-bold mt-1 text-gray-900"><%= counts.topics %></h3>
+    </div>
+    <div class="w-12 h-12 bg-indigo-50 rounded-lg flex items-center justify-center text-indigo-600">
+      <i class="fa-solid fa-compass text-xl"></i>
+    </div>
+  </div>
+  
+  <div class="bg-white rounded-xl p-6 border border-gray-200 shadow-sm flex items-center justify-between">
+    <div>
+      <span class="text-sm font-semibold text-gray-500">Articles Drafted</span>
+      <h3 class="text-3xl font-bold mt-1 text-gray-900"><%= counts.generated %></h3>
+    </div>
+    <div class="w-12 h-12 bg-amber-50 rounded-lg flex items-center justify-center text-amber-600">
+      <i class="fa-solid fa-file-lines text-xl"></i>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-xl p-6 border border-gray-200 shadow-sm flex items-center justify-between">
+    <div>
+      <span class="text-sm font-semibold text-gray-500">Awaiting Review</span>
+      <h3 class="text-3xl font-bold mt-1 text-indigo-600"><%= counts.pending %></h3>
+    </div>
+    <div class="w-12 h-12 bg-red-50 rounded-lg flex items-center justify-center text-red-600">
+      <i class="fa-solid fa-clipboard-question text-xl"></i>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-xl p-6 border border-gray-200 shadow-sm flex items-center justify-between">
+    <div>
+      <span class="text-sm font-semibold text-gray-500">Published Posts</span>
+      <h3 class="text-3xl font-bold mt-1 text-emerald-600"><%= counts.published %></h3>
+    </div>
+    <div class="w-12 h-12 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-600">
+      <i class="fa-solid fa-circle-check text-xl"></i>
+    </div>
+  </div>
+</div>
+
+<!-- Lists Layout -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+  <!-- Articles List -->
+  <div class="lg:col-span-2 space-y-6">
+    <div class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+      <div class="flex items-center justify-between border-b pb-4 mb-4">
+        <h2 class="font-bold text-gray-900 text-lg">Recently Generated Articles</h2>
+        <a href="/admin/review" class="text-indigo-600 hover:underline text-sm font-semibold">View All Awaiting Review</a>
+      </div>
+      
+      <div class="space-y-4">
+        <% if (articles && articles.length > 0) { %>
+          <% articles.forEach(art => { %>
+            <div class="flex items-center justify-between p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition border border-gray-150">
+              <div>
+                <h4 class="font-semibold text-gray-900 text-sm"><%= art.title %></h4>
+                <span class="text-xs text-gray-500">Category: <%= art.category %> &bull; Author: <%= art.author_name %></span>
+              </div>
+              <div class="flex items-center gap-3">
+                <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wider <%= art.status === 'published' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800' %>">
+                  <%= art.status %>
+                </span>
+                <a href="/admin/article/edit/<%= art.id %>" class="text-indigo-600 hover:text-indigo-900 text-sm font-semibold"><i class="fa-solid fa-edit"></i> Edit/Review</a>
+              </div>
+            </div>
+          <% }) %>
+        <% } else { %>
+          <p class="text-gray-500 text-sm">No articles drafted yet.</p>
+        <% } %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Topics & Scraper Logs -->
+  <div class="space-y-8">
+    
+    <!-- Discovered Topics -->
+    <div class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+      <h3 class="font-bold text-gray-900 text-base border-b pb-3 mb-4">Discovered Topics</h3>
+      <div class="space-y-3">
+        <% if (topics && topics.length > 0) { %>
+          <% topics.forEach(topic => { %>
+            <div class="text-sm p-3 rounded-lg border bg-gray-50">
+              <p class="font-semibold text-gray-900 leading-snug"><%= topic.title %></p>
+              <div class="flex justify-between text-xs text-gray-500 mt-2">
+                <span><%= topic.category %></span>
+                <span class="font-medium text-indigo-600"><%= topic.status %></span>
+              </div>
+            </div>
+          <% }) %>
+        <% } else { %>
+          <p class="text-sm text-gray-500">No topics found yet.</p>
+        <% } %>
+      </div>
+    </div>
+
+    <!-- Scraper/Generator Logs -->
+    <div class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+      <h3 class="font-bold text-gray-900 text-base border-b pb-3 mb-4">System Log Activities</h3>
+      <div class="space-y-3 text-xs">
+        <% if (logs && logs.length > 0) { %>
+          <% logs.forEach(log => { %>
+            <div class="flex gap-2">
+              <span class="font-bold uppercase tracking-wider <%= log.level === 'error' ? 'text-red-600' : 'text-indigo-600' %>">[<%= log.level %>]</span>
+              <p class="text-gray-700"><%= log.message %></p>
+            </div>
+          <% }) %>
+        <% } else { %>
+          <p class="text-gray-500">Log list empty.</p>
+        <% } %>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<%- include('partials/admin_footer') %>
