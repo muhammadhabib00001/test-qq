@@ -132,15 +132,30 @@
     
     <!-- Discovered Topics -->
     <div class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-      <h3 class="font-bold text-gray-900 text-base border-b pb-3 mb-4">Discovered Topics</h3>
+      <div class="flex items-center justify-between border-b pb-3 mb-4">
+        <h3 class="font-bold text-gray-900 text-base">Discovered Topics</h3>
+        <form action="/admin/trigger-automation" method="POST" class="inline">
+          <button type="submit" class="text-xs bg-indigo-50 text-indigo-600 hover:bg-indigo-100 font-bold px-2.5 py-1 rounded transition">
+            <i class="fa-solid fa-bolt mr-1"></i> Generate Next
+          </button>
+        </form>
+      </div>
       <div class="space-y-3">
         <% if (topics && topics.length > 0) { %>
           <% topics.forEach(topic => { %>
-            <div class="text-sm p-3 rounded-lg border bg-gray-50">
+            <div class="text-sm p-3 rounded-lg border bg-gray-50 flex flex-col gap-2">
               <p class="font-semibold text-gray-900 leading-snug"><%= topic.title %></p>
-              <div class="flex justify-between text-xs text-gray-500 mt-2">
-                <span><%= topic.category %></span>
-                <span class="font-medium text-indigo-600"><%= topic.status %></span>
+              <div class="flex justify-between items-center text-xs text-gray-500">
+                <span class="bg-gray-200 text-gray-700 px-2 py-0.5 rounded font-medium"><%= topic.category %></span>
+                <% if (topic.status === 'discovered') { %>
+                  <form action="/admin/topic/generate/<%= topic.id %>" method="POST" class="inline">
+                    <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded font-semibold text-xs transition flex items-center gap-1 shadow-sm">
+                      <i class="fa-solid fa-wand-magic-sparkles"></i> Generate & Publish
+                    </button>
+                  </form>
+                <% } else { %>
+                  <span class="font-semibold text-emerald-600 capitalize"><i class="fa-solid fa-check mr-1"></i><%= topic.status %></span>
+                <% } %>
               </div>
             </div>
           <% }) %>

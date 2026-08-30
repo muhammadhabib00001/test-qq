@@ -396,6 +396,21 @@ router.post('/admin/trigger-automation', isAdmin, async (req, res, next) => {
   }
 });
 
+// 1-Click Generate & Publish specific Discovered Topic
+router.post('/admin/topic/generate/:id', isAdmin, async (req, res, next) => {
+  try {
+    const topicId = parseInt(req.params.id, 10) || req.params.id;
+    await contentEngine.generateArticleFromTopic(topicId);
+    
+    // Automatically set latest draft as published
+    await db.run("UPDATE articles SET status = 'published' WHERE status = 'draft'");
+    
+    res.redirect('/admin');
+  } catch (err) {
+    next(err);
+  }
+});
+
 // Instant Custom Keyword Generator Route (Supports Auto Publish & Manual Draft mode)
 router.post('/admin/generate-keyword', isAdmin, async (req, res, next) => {
   const { keyword, category, mode } = req.body;
