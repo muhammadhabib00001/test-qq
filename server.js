@@ -16,14 +16,18 @@ function fsMkdir(p) {
   fs.mkdirSync(p, { recursive: true });
 }
 
+const { IS_VERCEL } = require('./config');
+
 // Setup directories
 const publicDir = path.join(__dirname, 'public');
 const viewsDir = path.join(__dirname, 'views');
 const uploadDir = path.join(publicDir, 'images', 'uploads');
 
-if (!fsExists(publicDir)) fsMkdir(publicDir);
-if (!fsExists(path.join(publicDir, 'images'))) fsMkdir(path.join(publicDir, 'images'));
-if (!fsExists(uploadDir)) fsMkdir(uploadDir);
+if (!IS_VERCEL) {
+  if (!fsExists(publicDir)) fsMkdir(publicDir);
+  if (!fsExists(path.join(publicDir, 'images'))) fsMkdir(path.join(publicDir, 'images'));
+  if (!fsExists(uploadDir)) fsMkdir(uploadDir);
+}
 
 // Session configuration
 app.use(session({
