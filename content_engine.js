@@ -107,9 +107,11 @@ async function generateArticleFromTopic(topicId) {
 
   try {
     // Check settings for features
-    const autoSeo = (await db.get("SELECT value FROM settings WHERE key = 'auto_seo_gen'")).value === 'true';
-    const autoImage = (await db.get("SELECT value FROM settings WHERE key = 'auto_image_gen'")).value === 'true';
-    const authors = await db.all('SELECT id FROM authors');
+    const autoSeoSetting = await db.get("SELECT value FROM settings WHERE key = 'auto_seo_gen'");
+    const autoSeo = autoSeoSetting ? autoSeoSetting.value === 'true' : true;
+    const autoImageSetting = await db.get("SELECT value FROM settings WHERE key = 'auto_image_gen'");
+    const autoImage = autoImageSetting ? autoImageSetting.value === 'true' : true;
+    const authors = await db.all('SELECT id FROM authors') || [{ id: 1 }];
     const randomAuthor = authors[Math.floor(Math.random() * authors.length)];
 
     // Structured fields
