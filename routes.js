@@ -298,7 +298,7 @@ router.post('/admin/settings', isAdmin, async (req, res, next) => {
 // Review & Approval panel
 router.get('/admin/review', isAdmin, async (req, res, next) => {
   try {
-    const articles = await db.all("SELECT a.*, aut.name as author_name FROM articles a LEFT JOIN authors aut ON a.author_id = aut.id WHERE a.status = 'draft' ORDER BY a.created_at DESC");
+    const articles = await db.all("SELECT a.*, aut.name as author_name FROM articles a LEFT JOIN authors aut ON a.author_id = aut.id WHERE a.status = 'draft' ORDER BY a.created_at DESC") || [];
     res.render('admin/review', {
       pageTitle: 'Awaiting Editorial Review',
       articles
@@ -311,9 +311,12 @@ router.get('/admin/review', isAdmin, async (req, res, next) => {
 // Edit & review specific article draft
 router.get('/admin/article/edit/:id', isAdmin, async (req, res, next) => {
   try {
-    const article = await db.get("SELECT * FROM articles WHERE id = ?", [req.params.id]);
-    const authors = await db.all("SELECT * FROM authors");
-    const categories = (await db.get("SELECT value FROM settings WHERE key = 'categories'")).value.split(',');
+    const article = await db.get("SELECT * FROM articles WHERE id = ?", [req.params.id]) || {
+      id: req.params.id, title: '', excerpt: '', body: '', category: '', author_id: 1, seo_title: '', seo_description: '', image_alt: '', status: 'draft'
+    };
+    const authors = await db.all("SELECT * FROM authors") || [];
+    const categoriesSetting = await db.get("SELECT value FROM settings WHERE key = 'categories'");
+    const categories = (categoriesSetting ? categoriesSetting.value : 'Technology,Business,Lifestyle,Travel,Entertainment,Food,Home & Garden,Education,How-To').split(',');
 
     res.render('admin/article_edit', {
       pageTitle: `Reviewing: ${article.title}`,
