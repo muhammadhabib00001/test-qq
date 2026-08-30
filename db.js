@@ -251,7 +251,8 @@ function get(sql, params = []) {
       const key = match ? (match[1] === '?' ? params[0] : match[1]) : '';
       return Promise.resolve({ value: mockStore.settings[key] || '' });
     } else if (sql.includes('SELECT a.*, aut.name as author_name FROM articles a LEFT JOIN authors aut ON a.author_id = aut.id WHERE a.status = \'published\' ORDER BY a.created_at DESC LIMIT 1')) {
-      const art = mockStore.articles.filter(a => a.status === 'published')[0];
+      const published = mockStore.articles.filter(a => a.status === 'published').slice().reverse();
+      const art = published[0];
       if (art) {
         const aut = mockStore.authors.find(a => a.id === art.author_id) || {};
         return Promise.resolve({ ...art, author_name: aut.name });
@@ -273,7 +274,9 @@ function get(sql, params = []) {
     } else if (sql.includes('SELECT * FROM authors WHERE slug = ?')) {
       return Promise.resolve(mockStore.authors.find(a => a.slug === params[0]) || null);
     } else if (sql.includes('SELECT * FROM articles WHERE id = ?')) {
-      return Promise.resolve(mockStore.articles.find(a => a.id === params[0]) || null);
+      return Promise.resolve(mockStore.articles.find(a => a.id == params[0]) || null);
+    } else if (sql.includes('SELECT * FROM topics WHERE id = ?')) {
+      return Promise.resolve(mockStore.topics.find(t => t.id == params[0]) || null);
     } else if (sql.includes('SELECT id FROM topics WHERE status = \'discovered\'')) {
       return Promise.resolve(mockStore.topics.find(t => t.status === 'discovered') || null);
     } else if (sql.includes('SELECT id FROM topics WHERE title = ?')) {
@@ -299,29 +302,32 @@ function all(sql, params = []) {
     } else if (sql.includes('SELECT * FROM authors')) {
       return Promise.resolve(mockStore.authors);
     } else if (sql.includes('SELECT * FROM topics')) {
-      return Promise.resolve(mockStore.topics.slice(-10));
+      return Promise.resolve(mockStore.topics.slice().reverse().slice(0, 10));
     } else if (sql.includes('SELECT * FROM logs')) {
-      return Promise.resolve(mockStore.logs.slice(-10));
+      return Promise.resolve(mockStore.logs.slice().reverse().slice(0, 10));
     } else if (sql.includes('SELECT a.*, aut.name as author_name FROM articles a LEFT JOIN authors aut ON a.author_id = aut.id WHERE a.status = \'draft\'')) {
-      return Promise.resolve(mockStore.articles.filter(a => a.status === 'draft').map(art => {
+      return Promise.resolve(mockStore.articles.filter(a => a.status === 'draft').slice().reverse().map(art => {
         const aut = mockStore.authors.find(a => a.id === art.author_id) || {};
         return { ...art, author_name: aut.name };
       }));
     } else if (sql.includes('SELECT a.*, aut.name as author_name FROM articles a LEFT JOIN authors aut ON a.author_id = aut.id WHERE a.status = \'published\'') || sql.includes('SELECT a.*, aut.name as author_name FROM articles a')) {
       let filtered = mockStore.articles;
+      if (sql.includes('WHERE a.status = \'published\'')) {
+        filtered = filtered.filter(a => a.status === 'published');
+      }
       if (sql.includes('a.category = ?')) {
         filtered = filtered.filter(a => a.category === params[0]);
       }
-      return Promise.resolve(filtered.map(art => {
+      return Promise.resolve(filtered.slice().reverse().map(art => {
         const aut = mockStore.authors.find(a => a.id === art.author_id) || {};
         return { ...art, author_name: aut.name };
       }));
     } else if (sql.includes('SELECT * FROM articles WHERE category = ?')) {
-      return Promise.resolve(mockStore.articles.filter(a => a.category === params[0] && a.id !== params[1] && a.status === 'published').slice(0, 3));
+      return Promise.resolve(mockStore.articles.filter(a => a.category === params[0] && a.id !== params[1] && a.status === 'published').slice().reverse().slice(0, 3));
     } else if (sql.includes('SELECT * FROM articles WHERE author_id = ?')) {
-      return Promise.resolve(mockStore.articles.filter(a => a.author_id === params[0] && a.status === 'published'));
+      return Promise.resolve(mockStore.articles.filter(a => a.author_id === params[0] && a.status === 'published').slice().reverse());
     } else if (sql.includes('SELECT * FROM articles WHERE status = \'published\'')) {
-      return Promise.resolve(mockStore.articles.filter(a => a.status === 'published').slice(0, 5));
+      return Promise.resolve(mockStore.articles.filter(a => a.status === 'published').slice().reverse().slice(0, 5));
     }
     return Promise.resolve([]);
   }

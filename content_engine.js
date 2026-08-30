@@ -103,13 +103,20 @@ async function generateArticleFromTopic(topicId) {
 
     const apiKey = process.env.GEMINI_API_KEY;
 
+    // Fetch existing articles for contextual SEO internal linking
+    const existingArticles = await db.all("SELECT id, title, slug, category FROM articles WHERE status = 'published' LIMIT 10") || [];
+    const internalLinkGuide = existingArticles.length > 0 
+      ? `\n\nINTERNAL LINKING REQUIREMENT: Naturally incorporate 2 to 3 HTML hyperlinks (<a href="/article/[slug]">[anchor text]</a>) within the body text pointing to these related articles:\n` + 
+        existingArticles.map(a => `- Title: "${a.title}", Slug: "${a.slug}"`).join('\n')
+      : '';
+
     if (apiKey && GoogleGenAI) {
       console.log('Generating content via Google Gemini API...');
       const ai = new GoogleGenAI({ apiKey });
       
       const prompt = `Write an authoritative, highly comprehensive, 1500-word SEO article on: "${topic.title}" in the category "${topic.category}".
 
-STRICT LENGTH REQUIREMENT: The "body" HTML content MUST contain at least 1200 to 1800 words. Write extensive, deeply detailed paragraphs for every section with real-world statistics, key industry metrics, step-by-step frameworks, expert commentary, and comparison tables.
+STRICT LENGTH REQUIREMENT: The "body" HTML content MUST contain at least 1200 to 1800 words. Write extensive, deeply detailed paragraphs for every section with real-world statistics, key industry metrics, step-by-step frameworks, expert commentary, comparison tables, and semantic HTML (<h2>, <h3>, <p>, <ul>, <ol>, <table>).${internalLinkGuide}
 
 Structure requirements for "body":
 1. Executive Summary & Industry Context (300+ words)
