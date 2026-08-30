@@ -340,7 +340,20 @@ router.post('/admin/article/edit/:id', isAdmin, async (req, res, next) => {
   try {
     await db.run(
       `UPDATE articles SET title = ?, excerpt = ?, body = ?, category = ?, author_id = ?, seo_title = ?, seo_description = ?, image_alt = ?, status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
-      [title, excerpt, body, category, author_id, seo_title, seo_description, image_alt, status, req.params.id]
+      [title, excerpt, body, category, author_id, seo_title, seo_description, image_alt, status || 'published', req.params.id]
+    );
+    res.redirect('/admin');
+  } catch (err) {
+    next(err);
+  }
+});
+
+// 1-Click Publish from Review Queue
+router.post('/admin/article/publish/:id', isAdmin, async (req, res, next) => {
+  try {
+    await db.run(
+      "UPDATE articles SET status = 'published', updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+      [req.params.id]
     );
     res.redirect('/admin');
   } catch (err) {
