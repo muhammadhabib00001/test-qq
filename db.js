@@ -192,8 +192,17 @@ function run(sql, params = []) {
     } else if (sql.includes('UPDATE topics SET status')) {
       const topic = mockStore.topics.find(t => t.id === params[1]);
       if (topic) topic.status = params[0];
+    } else if (sql.includes('UPDATE articles SET status =')) {
+      // Direct status update (e.g. UPDATE articles SET status = 'published' WHERE status = 'draft')
+      mockStore.articles.forEach(a => {
+        if (!sql.includes('WHERE status =') || a.status === 'draft') {
+          a.status = 'published';
+          a.updated_at = new Date();
+        }
+      });
     } else if (sql.includes('UPDATE articles SET title')) {
-      const art = mockStore.articles.find(a => a.id === params[9]);
+      const artId = parseInt(params[9], 10) || params[9];
+      const art = mockStore.articles.find(a => a.id == artId);
       if (art) {
         art.title = params[0]; art.excerpt = params[1]; art.body = params[2]; art.category = params[3];
         art.author_id = params[4]; art.seo_title = params[5]; art.seo_description = params[6];
