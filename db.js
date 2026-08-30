@@ -15,6 +15,7 @@ try {
   db = new sqlite3.Database(dbPath, (err) => {
     if (err) {
       console.error('Database connection error:', err.message);
+      isMockDb = true;
     } else {
       console.log('Connected to the SQLite database.');
     }
