@@ -355,9 +355,26 @@ router.post('/admin/trigger-automation', isAdmin, async (req, res, next) => {
     await contentEngine.discoverTopics();
 
     // 2. Grab oldest discovered topic and generate it
-    const topic = await db.get("SELECT id FROM topics WHERE status = 'discovered' ORDER BY created_at ASC LIMIT 1");
+    let topic = await db.get("SELECT id FROM topics WHERE status = 'discovered' ORDER BY created_at ASC LIMIT 1");
+    if (!topic) {
+      // Force fallback topic if empty
+      await db.run("INSERT INTO topics (title, category, source_url, status) VALUES (?, ?, ?, ?)", [
+        `Innovations in AI & Automation: ${new Date().toLocaleDateString()}`,
+        'Technology',
+        'https://example.com',
+        'discovered'
+      ]);
+      topic = await db.get("SELECT id FROM topics WHERE status = 'discovered' ORDER BY created_at ASC LIMIT 1");
+    }
+
     if (topic) {
       await contentEngine.generateArticleFromTopic(topic.id);
+      
+      // Auto-publish if approval workflow setting is false
+      const approvalSetting = await db.get("SELECT value FROM settings WHERE key = 'approval_workflow'");
+      if (approvalSetting && approvalSetting.value === 'false') {
+        await db.run("UPDATE articles SET status = 'published' WHERE status = 'draft'");
+      }
     }
     
     res.redirect('/admin');
