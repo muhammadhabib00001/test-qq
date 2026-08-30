@@ -414,27 +414,28 @@ router.post('/admin/topic/generate/:id', isAdmin, async (req, res, next) => {
 // Instant Custom Keyword Generator Route (Supports Auto Publish & Manual Draft mode)
 router.post('/admin/generate-keyword', isAdmin, async (req, res, next) => {
   const { keyword, category, mode } = req.body;
-  if (!keyword) return res.redirect('/admin');
+  if (!keyword || !keyword.trim()) return res.redirect('/admin');
 
   try {
     const selectedCategory = category || 'Technology';
-    const isAutoPublish = mode === 'auto';
+    const isAutoPublish = mode !== 'manual';
+    const cleanedKeyword = keyword.trim();
     
-    // 1. Insert topic & get returned inserted ID
+    // 1. Insert topic
     const topicResult = await db.run(
       "INSERT INTO topics (title, category, source_url, status) VALUES (?, ?, ?, ?)",
-      [keyword.trim(), selectedCategory, 'https://custom-keyword', 'discovered']
+      [cleanedKeyword, selectedCategory, 'https://custom-keyword', 'discovered']
     );
 
     let topicId = topicResult && topicResult.lastID ? topicResult.lastID : null;
     
     if (!topicId) {
-      const topic = await db.get("SELECT id FROM topics WHERE title = ? ORDER BY id DESC LIMIT 1", [keyword.trim()]);
+      const topic = await db.get("SELECT id FROM topics WHERE title = ? ORDER BY id DESC LIMIT 1", [cleanedKeyword]);
       if (topic) topicId = topic.id;
     }
     
+    // 2. Generate 1000-1500 word AI article + high-res image
     if (topicId) {
-      // 2. Generate 1000-1500 word AI article + high-res image
       await contentEngine.generateArticleFromTopic(topicId);
       
       // 3. If Auto Publish mode selected, set latest draft to published
@@ -446,7 +447,8 @@ router.post('/admin/generate-keyword', isAdmin, async (req, res, next) => {
     // Redirect to review queue if manual draft, or dashboard if auto published
     res.redirect(isAutoPublish ? '/admin' : '/admin/review');
   } catch (err) {
-    next(err);
+    console.error('Error generating keyword article:', err);
+    res.redirect('/admin');
   }
 });
 
