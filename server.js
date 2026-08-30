@@ -30,11 +30,16 @@ if (!IS_VERCEL) {
 }
 
 // Session configuration
+app.set('trust proxy', 1); // Trust first proxy (Vercel)
 app.use(session({
   secret: 'editorial-secret-key-1298471',
   resave: false,
-  saveUninitialized: false,
-  cookie: { maxAge: 24 * 60 * 60 * 1000 } // 24 hours
+  saveUninitialized: true, // Force uninitialized sessions to save (resolves login redirects)
+  cookie: { 
+    maxAge: 24 * 60 * 60 * 1000,
+    secure: false, // Set to false to support local testing and http fallbacks
+    sameSite: 'lax'
+  }
 }));
 
 // Body parsing middlewares
