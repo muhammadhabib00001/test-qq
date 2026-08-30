@@ -20,8 +20,10 @@ async function runCronAutomation() {
     const discoveredCount = await contentEngine.discoverTopics();
     console.log(`[Step 1 Complete] Discovered ${discoveredCount} topics.`);
 
-    // 3. Find ungenerated topics
-    const topicsToGenerate = await db.all("SELECT id, title FROM topics WHERE status = 'discovered' ORDER BY created_at ASC LIMIT 2") || [];
+    // 3. Find ungenerated topics (dynamic articles per run limit)
+    const settingsCount = await db.get("SELECT value FROM settings WHERE key = 'articles_per_day'");
+    const limit = settingsCount ? parseInt(settingsCount.value, 10) || 6 : 6;
+    const topicsToGenerate = await db.all("SELECT id, title FROM topics WHERE status = 'discovered' ORDER BY created_at ASC LIMIT ?", [limit]) || [];
     
     if (topicsToGenerate.length === 0) {
       console.log('No pending topics found for generation.');
