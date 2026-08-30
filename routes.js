@@ -242,9 +242,9 @@ router.get('/admin', isAdmin, async (req, res, next) => {
       published: (await db.get("SELECT COUNT(*) as count FROM articles WHERE status = 'published'") || { count: 0 }).count || 0,
     };
 
-    const topicsList = await db.all("SELECT * FROM topics ORDER BY created_at DESC LIMIT 10");
-    const articlesList = await db.all("SELECT a.*, aut.name as author_name FROM articles a LEFT JOIN authors aut ON a.author_id = aut.id ORDER BY a.created_at DESC LIMIT 10");
-    const logsList = await db.all("SELECT * FROM logs ORDER BY created_at DESC LIMIT 10");
+    const topicsList = await db.all("SELECT * FROM topics ORDER BY created_at DESC LIMIT 10") || [];
+    const articlesList = await db.all("SELECT a.*, aut.name as author_name FROM articles a LEFT JOIN authors aut ON a.author_id = aut.id ORDER BY a.created_at DESC LIMIT 10") || [];
+    const logsList = await db.all("SELECT * FROM logs ORDER BY created_at DESC LIMIT 10") || [];
 
     res.render('admin/dashboard', {
       pageTitle: 'Admin Dashboard',
