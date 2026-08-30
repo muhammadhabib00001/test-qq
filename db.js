@@ -2,7 +2,10 @@ const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const fs = require('fs');
 
-const dbPath = path.resolve(__dirname, process.env.DATABASE_PATH || 'database.sqlite');
+const { IS_VERCEL } = require('./config');
+const dbPath = IS_VERCEL 
+  ? '/tmp/database.sqlite' 
+  : path.resolve(__dirname, process.env.DATABASE_PATH || 'database.sqlite');
 
 // Ensure db connection is initialized
 const db = new sqlite3.Database(dbPath, (err) => {
