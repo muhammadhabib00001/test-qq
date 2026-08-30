@@ -2,7 +2,12 @@ const express = require('express');
 const router = express.Router();
 const db = require('./db');
 const contentEngine = require('./content_engine');
-const { create } = require('xmlbuilder2');
+let xmlbuilder2;
+try {
+  xmlbuilder2 = require('xmlbuilder2');
+} catch (e) {
+  console.warn('xmlbuilder2 package failed to load. XML Sitemap format will degrade gracefully.');
+}
 
 // ==========================================
 // Middleware for Admin Authentication
@@ -130,7 +135,20 @@ router.get('/sitemap.xml', async (req, res, next) => {
     const articles = await db.all("SELECT slug, updated_at FROM articles WHERE status = 'published'");
     const host = `${req.protocol}://${req.get('host')}`;
     
-    const root = create({ version: '1.0', encoding: 'UTF-8' })
+    if (!xmlbuilder2) {
+      // Graceful raw string sitemap fallback
+      let rawXml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
+      rawXml += `  <url>\n    <loc>${host}</loc>\n    <priority>1.0</priority>\n  </url>\n`;
+      for (const art of articles) {
+        const lastmod = new Date(art.updated_at).toISOString().split('T')[0];
+        rawXml += `  <url>\n    <loc>${host}/article/${art.slug}</loc>\n    <lastmod>${lastmod}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.8</priority>\n  </url>\n`;
+      }
+      rawXml += `</urlset>`;
+      res.header('Content-Type', 'application/xml');
+      return res.send(rawXml);
+    }
+
+    const root = xmlbuilder2.create({ version: '1.0', encoding: 'UTF-8' })
       .ele('urlset', { xmlns: 'http://www.sitemaps.org/schemas/sitemap/0.9' });
 
     // Home
