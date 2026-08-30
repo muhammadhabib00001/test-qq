@@ -124,190 +124,189 @@ async function generateArticleFromTopic(topicId) {
         existingArticles.map(a => `- Title: "${a.title}", Slug: "${a.slug}"`).join('\n')
       : '';
 
-    if (apiKey && GoogleGenAI) {
+    if (apiKey) {
       console.log('Generating unique content via Google Gemini API...');
       try {
-        const ai = new GoogleGenAI({ apiKey });
-        
-        const prompt = `You are an elite SEO Content Strategist and Industry Journalist. 
-Write a 100% UNIQUE, highly detailed, 1500-word authoritative guide for the topic/keyword: "${topic.title}" in the category "${topic.category}".
+        const prompt = `You are an elite Senior SEO Strategist and Professional Journalist. 
+Write a 100% UNIQUE, comprehensive, 1500-word authoritative guide for the topic/keyword: "${topic.title}" in the category "${topic.category}".
 
 CRITICAL REQUIREMENTS:
-- DO NOT use generic boilerplate sentences. All paragraphs must be deeply specialized and rich in actionable insights, data, and industry context specifically about "${topic.title}".
-- Use clean semantic HTML (<h2>, <h3>, <h4>, <p>, <ul>, <ol>, <table>, <blockquote>).
-- Start the body with a dedicated Featured Snippet Quick Summary callout box (<div class="bg-indigo-50 border-l-4 border-indigo-600 p-5 my-6 rounded-r-xl not-prose">...</div>).
-- Create 5-6 substantive sections with <h2> headlines tailored specifically to "${topic.title}".
-- Include a real comparative HTML <table> with practical metrics.
-- Write 4 clear, helpful FAQs and 3 industry sources.${internalLinkGuide}
+- Write specialized, deeply detailed paragraphs specifically about "${topic.title}". DO NOT use generic phrases.
+- Use clean semantic HTML (<h2>, <h3>, <h4>, <p>, <ul>, <ol>, <table>).
+- Include a Featured Snippet summary callout box (<div class="bg-indigo-50 border-l-4 border-indigo-600 p-5 my-6 rounded-r-xl not-prose">...</div>).
+- Include a comparison <table> with real metrics for "${topic.title}".
+- Include 4 detailed FAQs and 3 sources.${internalLinkGuide}
 
-Return ONLY valid JSON matching this exact structure:
+Return ONLY raw JSON with these keys:
 {
-  "articleTitle": "Catchy, High-CTR Editorial Headline for ${topic.title} (50-70 chars)",
-  "excerpt": "Compelling 2-sentence summary tailored to ${topic.title}",
-  "body": "Complete 1500+ word HTML body with <h2>, <h3>, <h4>, <table>, <ol>, <ul>",
+  "articleTitle": "Catchy, High-CTR Editorial Title for ${topic.title}",
+  "excerpt": "2-sentence summary tailored to ${topic.title}",
+  "body": "Complete 1500+ word HTML body with <h2>, <h3>, <table>, <ol>, <ul>",
   "seoTitle": "Keyword-rich title (50-60 chars)",
-  "seoDescription": "Engaging meta description (145-160 chars)",
-  "focusKeyword": "${topic.title}",
-  "imageAlt": "Descriptive alt text for ${topic.title}",
-  "faq": [
-    {"q": "Specific question about ${topic.title}?", "a": "Detailed answer (50+ words)..."},
-    {"q": "Second question about ${topic.title}?", "a": "Detailed answer (50+ words)..."},
-    {"q": "Third question about ${topic.title}?", "a": "Detailed answer (50+ words)..."},
-    {"q": "Fourth question about ${topic.title}?", "a": "Detailed answer (50+ words)..."}
-  ],
-  "sources": [
-    {"name": "Authoritative Reference 1", "url": "https://example.com/source1"},
-    {"name": "Authoritative Reference 2", "url": "https://example.com/source2"},
-    {"name": "Authoritative Reference 3", "url": "https://example.com/source3"}
-  ]
+  "seoDescription": "Meta description (145-160 chars)",
+  "imageAlt": "Alt text for ${topic.title}",
+  "faq": [{"q": "Question?", "a": "Answer..."}],
+  "sources": [{"name": "Source Name", "url": "https://example.com"}]
 }`;
 
-        const response = await ai.models.generateContent({
-          model: 'gemini-2.5-flash',
-          contents: prompt,
-          config: {
-            responseMimeType: 'application/json'
-          }
-        });
+        let rawText = '';
 
-        const rawText = response.text ? response.text.trim() : '';
-        let cleanedJson = rawText;
-        if (cleanedJson.startsWith('```json')) {
-          cleanedJson = cleanedJson.replace(/^```json\s*/, '').replace(/\s*```$/, '');
-        } else if (cleanedJson.startsWith('```')) {
-          cleanedJson = cleanedJson.replace(/^```\s*/, '').replace(/\s*```$/, '');
+        // 1. Try official SDK first
+        if (GoogleGenAI) {
+          try {
+            const ai = new GoogleGenAI({ apiKey });
+            const response = await ai.models.generateContent({
+              model: 'gemini-2.5-flash',
+              contents: prompt,
+              config: { responseMimeType: 'application/json' }
+            });
+            rawText = response.text ? response.text.trim() : '';
+          } catch (sdkErr) {
+            console.warn('SDK call failed, trying direct REST API endpoint:', sdkErr.message);
+          }
         }
 
-        const data = JSON.parse(cleanedJson);
+        // 2. Direct REST API fallback with native fetch (guaranteed to work across Node versions)
+        if (!rawText) {
+          const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+          const res = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: prompt }] }],
+              generationConfig: { responseMimeType: 'application/json' }
+            })
+          });
+          const resJson = await res.json();
+          if (resJson.candidates && resJson.candidates[0] && resJson.candidates[0].content && resJson.candidates[0].content.parts) {
+            rawText = resJson.candidates[0].content.parts[0].text.trim();
+          }
+        }
 
-        if (data.articleTitle) topicTitle = data.articleTitle;
-        if (data.body) body = data.body;
-        if (data.excerpt) excerpt = data.excerpt;
-        if (data.seoTitle) seoTitle = data.seoTitle;
-        if (data.seoDescription) seoDescription = data.seoDescription;
-        if (data.imageAlt) imageAlt = data.imageAlt;
-        if (data.faq && Array.isArray(data.faq)) faq = data.faq;
-        if (data.sources && Array.isArray(data.sources)) sources = data.sources;
-        
-        console.log(`Successfully generated unique 1500+ word AI article for "${topicTitle}" via Gemini!`);
+        if (rawText) {
+          let cleanedJson = rawText;
+          if (cleanedJson.startsWith('```json')) {
+            cleanedJson = cleanedJson.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+          } else if (cleanedJson.startsWith('```')) {
+            cleanedJson = cleanedJson.replace(/^```\s*/, '').replace(/\s*```$/, '');
+          }
+
+          const data = JSON.parse(cleanedJson);
+          if (data.articleTitle) topicTitle = data.articleTitle;
+          if (data.body) body = data.body;
+          if (data.excerpt) excerpt = data.excerpt;
+          if (data.seoTitle) seoTitle = data.seoTitle;
+          if (data.seoDescription) seoDescription = data.seoDescription;
+          if (data.imageAlt) imageAlt = data.imageAlt;
+          if (data.faq && Array.isArray(data.faq)) faq = data.faq;
+          if (data.sources && Array.isArray(data.sources)) sources = data.sources;
+          
+          console.log(`Successfully generated unique 1500+ word AI article for "${topicTitle}"!`);
+        }
       } catch (aiErr) {
-        console.error('Gemini API call failed:', aiErr.message);
+        console.error('Gemini content generation failed:', aiErr.message);
       }
     }
 
-    // Comprehensive long-form template fallback (1200+ words) if API key is not present or API call fails
+    // Dynamic, topic-specific generator fallback if API key is not supplied
     if (!body) {
       body = `
         <div class="bg-indigo-50 border-l-4 border-indigo-600 p-5 my-6 rounded-r-xl not-prose">
           <h3 class="text-indigo-900 font-bold text-base mb-2">⚡ Quick Summary & Key Takeaways</h3>
-          <p class="text-gray-800 text-sm leading-relaxed mb-3"><strong>${topic.title}</strong> is a high-impact framework designed to accelerate workflow automation, minimize error margins, and scale operational efficiency by up to 48% across modern digital ecosystems.</p>
+          <p class="text-gray-800 text-sm leading-relaxed mb-3"><strong>${topicTitle}</strong> represents a transformative focus area in modern ${topic.category.toLowerCase()}, enabling practitioners to streamline decision-making, enhance productivity, and achieve sustained high performance.</p>
           <ul class="list-disc pl-5 text-xs text-gray-700 space-y-1">
-            <li><strong>Core Strategic Focus:</strong> Operational resilience and intelligent process automation.</li>
-            <li><strong>Target Audience:</strong> Technology leads, developers, project managers, and growth strategists.</li>
-            <li><strong>Measurable Impact:</strong> Up to 5x faster turnaround times and reduced operational friction.</li>
+            <li><strong>Primary Focus:</strong> Strategic adoption and practical optimization for ${formattedKeyword}.</li>
+            <li><strong>Target Audience:</strong> Professionals, teams, and enthusiasts looking to master ${formattedKeyword}.</li>
+            <li><strong>Key Benefit:</strong> Faster implementation, fewer mistakes, and measurable ROI.</li>
           </ul>
         </div>
 
-        <h2>1. Definitive Overview & Industry Context</h2>
-        <p>In today's rapidly changing digital landscape, understanding the full scope of <strong>${topic.title}</strong> has transitioned from an optional advantage into a core strategic necessity. Across technological, commercial, and operational domains, organizations and professionals who adapt to these frameworks achieve significantly higher efficiency, lower error rates, and superior overall output quality.</p>
-        
-        <h3>1.1 Strategic Importance & Macro Trends</h3>
-        <p>This comprehensive report provides an exhaustive, data-driven analysis of key principles, strategic methodologies, real-world case applications, and future projections surrounding ${topic.title}. Whether evaluating initial adoption or scaling existing infrastructure, the insights detailed below offer an actionable roadmap for sustained growth.</p>
-        
-        <h4>1.1.1 Industry Performance Benchmarks</h4>
-        <p>Recent benchmarks across industry leaders reveal that structured, automated implementations yield up to a 48% reduction in task completion times while enhancing compliance and cross-team collaboration. As digital ecosystems become increasingly interconnected, establishing a robust operational foundation is paramount.</p>
-        
-        <h2>2. Evolution, Historical Drivers & Market Shifts</h2>
-        <p>To evaluate current breakthroughs, it is essential to review the evolutionary trajectory of ${topic.title}. Over the past decade, three distinct phases have defined modern development:</p>
+        <h2>1. Complete Overview & Strategic Value of ${formattedKeyword}</h2>
+        <p>In modern ${topic.category.toLowerCase()}, understanding the principles behind <strong>${formattedKeyword}</strong> is crucial for anyone seeking to stay competitive. By establishing clear methodologies and leveraging proven workflows, individuals and organizations can unlock substantial efficiency gains while reducing overall operational complexity.</p>
+        <p>Whether you are just beginning to explore ${formattedKeyword} or looking to optimize an existing setup, this guide provides a structured, actionable breakdown of everything you need to know in 2026.</p>
+
+        <h3>1.1 Why ${formattedKeyword} Matters Today</h3>
+        <p>The acceleration of digital tools and changing consumer expectations have elevated ${formattedKeyword} to a top priority. Recent surveys indicate that adopting best practices in this area leads to up to a 45% increase in workflow effectiveness and significantly higher satisfaction scores.</p>
+
+        <h2>2. Key Criteria & What to Look for in ${formattedKeyword}</h2>
+        <p>When assessing solutions or strategies related to <strong>${formattedKeyword}</strong>, it is vital to evaluate multiple criteria to ensure long-term value and seamless adoption:</p>
         <ul>
-          <li><strong>Phase 1 - Legacy Operations (2015–2018):</strong> Characterized by manual workflows, static configuration files, and fragmented data silos that generated high operational friction and unpredictable delivery timelines.</li>
-          <li><strong>Phase 2 - Transition & Semi-Automation (2019–2022):</strong> Marked by widespread cloud migration, initial adoption of continuous integration pipelines, and partial automation of repetitive maintenance tasks.</li>
-          <li><strong>Phase 3 - Intelligent Ecosystems (2023–Present):</strong> Powered by real-time predictive analytics, native AI assistance, and dynamic auto-scaling frameworks that adapt dynamically to workload fluctuations.</li>
+          <li><strong>Performance & Reliability:</strong> Consistently delivering high throughput under demanding conditions.</li>
+          <li><strong>Cost-to-Value Ratio:</strong> Balancing budget constraints against essential features and future-proofing.</li>
+          <li><strong>Ease of Integration:</strong> Compatibility with existing software, hardware, and routine workflows.</li>
+          <li><strong>Support & Ecosystem:</strong> Availability of active community support, documentation, and warranty coverage.</li>
         </ul>
 
-        <h2>3. Core Components & Deep Technical Breakdown</h2>
-        <p>Evaluating strategic options requires comparing operational methodologies across performance efficiency, complexity, risk management, and scalable ROI. The comprehensive matrix below outlines key operational dimensions across modern implementation models:</p>
+        <h2>3. Comparative Matrix & Feature Analysis</h2>
+        <p>To help you determine the ideal path forward for ${formattedKeyword}, the comparison table below highlights key performance dimensions across common approaches:</p>
 
         <table>
           <thead>
             <tr>
-              <th>Evaluation Dimension</th>
-              <th>Legacy Methodology</th>
-              <th>Hybrid Framework</th>
-              <th>Next-Gen Intelligent Model</th>
+              <th>Feature / Metric</th>
+              <th>Entry-Level Option</th>
+              <th>Mid-Range Benchmark</th>
+              <th>Premium / Pro Tier</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td>Deployment Velocity</td>
-              <td>Slow (Weeks to Months)</td>
-              <td>Moderate (2–5 Days)</td>
-              <td>Near-Instantaneous (< 2 Hours)</td>
+              <td>Core Performance</td>
+              <td>Standard daily tasks</td>
+              <td>Balanced multi-tasking</td>
+              <td>Heavy workloads & maximum speed</td>
             </tr>
             <tr>
-              <td>Scalability Ceiling</td>
-              <td>Constrained by manual capacity</td>
-              <td>Linear scaling with manual triggers</td>
-              <td>Elastic auto-scaling via cloud workers</td>
+              <td>Build & Reliability</td>
+              <td>Basic materials</td>
+              <td>Reinforced chassis / framework</td>
+              <td>Engineered premium build</td>
             </tr>
             <tr>
-              <td>System Maintenance Overhead</td>
-              <td>High manual maintenance & downtime</td>
-              <td>Scheduled maintenance windows</td>
-              <td>Self-healing automated updates</td>
+              <td>Longevity & Future-Proofing</td>
+              <td>1–2 Years</td>
+              <td>3–4 Years</td>
+              <td>5+ Years sustained support</td>
             </tr>
             <tr>
-              <td>Cost-to-Benefit Ratio</td>
-              <td>Low long-term return on investment</td>
-              <td>Moderate ROI with steady operational cost</td>
-              <td>High ROI with optimized resource utilization</td>
-            </tr>
-            <tr>
-              <td>Security & Audit Compliance</td>
-              <td>Manual audit logs subject to human error</td>
-              <td>Periodic automated compliance checks</td>
-              <td>Continuous real-time audit logging</td>
+              <td>Recommended Use-Case</td>
+              <td>Casual & light usage</td>
+              <td>Power users & professionals</td>
+              <td>Enterprise & intensive production</td>
             </tr>
           </tbody>
         </table>
 
-        <h2>4. Step-by-Step Implementation Blueprint</h2>
-        <p>Executing an optimized deployment strategy for <strong>${topic.title}</strong> requires an organized, multi-tiered approach to minimize risk and maximize performance:</p>
-
-        <h3>Step 1: Comprehensive Infrastructure Audit</h3>
-        <p>Perform an initial technical audit of existing workflows, data storage layers, and API dependencies. Document throughput bottlenecks, legacy code constraints, and security permissions before initiating upgrades.</p>
-
-        <h3>Step 2: Modular Architecture Design & Prototyping</h3>
-        <p>Design a modular framework separating core data models, logic processing, and presentation layers. Build isolated prototypes to validate performance under simulated stress loads.</p>
-
-        <blockquote>
-          "Excellence in technological execution is not achieved by chance, but through continuous refinement, rigorous testing, and structured feedback loops."
-        </blockquote>
-
-        <h3>Step 3: Automated Continuous Deployment & Real-Time Telemetry</h3>
-        <p>Deploy changes using automated pipeline workflows. Implement telemetry dashboards to track key performance metrics, memory consumption, latency, and error rates in real-time.</p>
-
-        <h2>5. Key Challenges & Defensive Mitigation Strategies</h2>
-        <p>While adopting modern practices offers immense benefits, teams frequently encounter predictable hurdles during execution:</p>
+        <h2>4. Step-by-Step Implementation & Buying Blueprint</h2>
+        <p>Follow these actionable steps to achieve the best results with <strong>${formattedKeyword}</strong>:</p>
         <ol>
-          <li><strong>Challenge - Integration Latency:</strong> Legacy systems may experience connection timeouts when interfacing with new API endpoints. <em>Mitigation:</em> Implement resilient exponential backoff retry algorithms and robust fallback handlers.</li>
-          <li><strong>Challenge - Data Inconsistency:</strong> Unsynchronized state updates between distributed modules can cause data drift. <em>Mitigation:</em> Enforce strict schema validation and atomic database transactions across all state mutations.</li>
-          <li><strong>Challenge - Resource Allocation Spikes:</strong> Unexpected traffic surges can exceed default function memory limits. <em>Mitigation:</em> Configure dynamic rate limiting and serverless concurrency controls.</li>
+          <li><strong>Define Exact Requirements:</strong> List the primary tasks, required specifications, and budget limits before making a commitment.</li>
+          <li><strong>Compare Real-World Benchmarks:</strong> Review independent performance tests and user feedback rather than relying solely on marketing claims.</li>
+          <li><strong>Test Compatibility:</strong> Verify that your choice integrates effortlessly with your existing tools and environment.</li>
+          <li><strong>Optimize Initial Setup:</strong> Configure default settings, install necessary updates, and establish regular backup routines.</li>
         </ol>
 
-        <h2>6. Future Trends & Strategic 5-Year Outlook</h2>
-        <p>Looking toward the next 3 to 5 years, the landscape for <strong>${topic.title}</strong> will be shaped by deeper AI integration, autonomous decision engines, and seamless cross-platform synchronization. Organizations that invest in modular, well-documented architectures today will be uniquely positioned to leverage emerging technologies without requiring costly complete re-writes.</p>
-        <p>By prioritizing clean code principles, robust error logging, and continuous automated testing, teams ensure sustained performance, security resilience, and market leadership in an increasingly competitive environment.</p>
+        <h2>5. Common Mistakes to Avoid</h2>
+        <p>Many users make avoidable errors when dealing with ${formattedKeyword}. Keep these critical tips in mind:</p>
+        <ul>
+          <li><em>Overpaying for unused features:</em> Focus on the capabilities that directly impact your daily workflow.</li>
+          <li><em>Ignoring maintenance & updates:</em> Regularly check for software and security patches to keep your setup running smoothly.</li>
+          <li><em>Neglecting ergonomics and user experience:</em> Usability is just as important as raw performance specifications.</li>
+        </ul>
+
+        <h2>6. Future Trends & Final Recommendations</h2>
+        <p>As technological advancements continue to reshape ${topic.category.toLowerCase()}, <strong>${formattedKeyword}</strong> will become even more integrated with intelligent automation and cloud capabilities. Investing in a solution that emphasizes adaptability and strong support will ensure you remain ahead of industry shifts for years to come.</p>
       `;
 
       faq = [
-        { q: `What is the primary takeaway of ${topic.title}?`, a: "The article highlights setting correct foundations and executing structured steps." },
-        { q: "Is this approach suitable for beginners?", a: "Yes, it is structured to guide beginners and offer value to professionals." }
+        { q: `What is the most important factor when choosing ${formattedKeyword}?`, a: `Focus on matching your specific daily requirements and performance needs rather than buying based purely on brand name or marketing claims.` },
+        { q: `Is ${formattedKeyword} suitable for beginners?`, a: `Yes, modern options are designed with user-friendly interfaces and streamlined setup processes that cater to both newcomers and seasoned professionals.` },
+        { q: `How often should I update or re-evaluate my ${formattedKeyword} strategy?`, a: `We recommend conducting a bi-annual review to ensure your setup remains optimized and takes advantage of the latest technological improvements.` }
       ];
 
       sources = [
-        { name: "Industry Association Review", url: "https://example.com/industry-review" },
-        { name: "Academic Research Hub", url: "https://example.com/research-hub" }
+        { name: `${formattedKeyword} Consumer & Industry Report 2026`, url: "https://example.com/industry-report" },
+        { name: "Global Technology & Standards Hub", url: "https://example.com/tech-standards" }
       ];
     }
 
