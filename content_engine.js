@@ -125,97 +125,60 @@ async function generateArticleFromTopic(topicId) {
       : '';
 
     if (apiKey && GoogleGenAI) {
-      console.log('Generating content via Google Gemini API...');
-      const ai = new GoogleGenAI({ apiKey });
-      
-      const prompt = `You are a world-class Senior SEO Strategist and Content Editor. Write an in-depth, authoritative, 1500-word SEO-optimized pillar guide based on the target search phrase: "${topic.title}" in the category "${topic.category}".
-
-CRITICAL SEO & STRUCTURAL REQUIREMENTS:
-1. "articleTitle":
-   - Write an engaging, high-CTR, complete editorial headline for the article (e.g., "The Ultimate Laptop Buying Guide (2026): Best Picks, Specs & Expert Tips" instead of just "buy laptop").
-   - Maximum 60-70 characters. Must naturally feature the core keyword.
-
-2. TARGET FEATURED SNIPPET (Position 0 Optimization):
-   - At the beginning of the "body", include a dedicated featured snippet box formatted as:
-     <div class="bg-indigo-50 border-l-4 border-indigo-600 p-5 my-6 rounded-r-xl not-prose"><h3 class="text-indigo-900 font-bold text-base mb-2">⚡ Quick Summary & Key Takeaways</h3><p class="text-gray-800 text-sm leading-relaxed mb-3">[A concise 45-55 word direct definition answer addressing "${topic.title}"]</p><ul class="list-disc pl-5 text-xs text-gray-700 space-y-1"><li><strong>Core Focus:</strong> [Key benefit]</li><li><strong>Ideal For:</strong> [Target audience]</li><li><strong>Estimated Impact:</strong> [Quantifiable metric]</li></ul></div>
-
-3. HEADING HIERARCHY (H2 to H5 structure):
-   - Organize the article cleanly with logical heading progression:
-     * <h2> Main Pillar Topics (6 distinct sections)
-     * <h3> Sub-frameworks and Specific Core Components within sections
-     * <h4> Technical Steps, Tool Implementations, or Case Analyses
-     * <h5> Specific Implementation Tips or Micro-notes where appropriate
-
-4. TOTAL WORD COUNT & QUALITY:
-   - The "body" HTML content MUST contain at least 1200 to 1800 words.
-   - Include comparison <table> elements, ordered <ol> implementation checklists, bolded key phrases (<strong>), and contextual paragraphs.
-
-5. INTERNAL LINKING REQUIREMENT:
-   ${internalLinkGuide}
-
-SECTIONS TO COVER IN "body":
-- <h2>1. Definitive Overview & Industry Significance</h2> (with <h3>, <h4> subheadings and Featured Snippet box)
-- <h2>2. Evolution, Architectural Drivers & Market Shifts</h2> (with <h3> historical timeline and comparison matrix)
-- <h2>3. Core Components & Deep Technical Breakdown</h2> (with <h3> architecture, <h4> specifications, and comparison <table>)
-- <h2>4. Step-by-Step Practical Implementation Roadmap</h2> (with <h3> phase guides and <ol> actionable steps)
-- <h2>5. Critical Challenges, Common Pitfalls & Risk Mitigation</h2> (with <h3> security/compliance and <h4> defensive tips)
-- <h2>6. Future Trends, Emerging Technologies & 5-Year Strategic Outlook</h2> (with <h3> predictive outlook and <h5> expert summary)
-
-Also generate:
-- "articleTitle": Complete, high-CTR editorial Title for the article (50-70 chars)
-- "seoTitle": Keyword-rich Title with Primary Keyword and Year 2026 (50-60 chars)
-- "seoDescription": High-CTR Search Intent Meta Description (145-160 chars)
-- "focusKeyword": Primary target SEO keyword phrase
-- "faq": Array of 4 comprehensive FAQs with 50+ word direct answers each (formatted for Google FAQ Schema).
-- "sources": 3 authoritative industry references with realistic names and URLs.`;
-
+      console.log('Generating unique content via Google Gemini API...');
       try {
+        const ai = new GoogleGenAI({ apiKey });
+        
+        const prompt = `You are an elite SEO Content Strategist and Industry Journalist. 
+Write a 100% UNIQUE, highly detailed, 1500-word authoritative guide for the topic/keyword: "${topic.title}" in the category "${topic.category}".
+
+CRITICAL REQUIREMENTS:
+- DO NOT use generic boilerplate sentences. All paragraphs must be deeply specialized and rich in actionable insights, data, and industry context specifically about "${topic.title}".
+- Use clean semantic HTML (<h2>, <h3>, <h4>, <p>, <ul>, <ol>, <table>, <blockquote>).
+- Start the body with a dedicated Featured Snippet Quick Summary callout box (<div class="bg-indigo-50 border-l-4 border-indigo-600 p-5 my-6 rounded-r-xl not-prose">...</div>).
+- Create 5-6 substantive sections with <h2> headlines tailored specifically to "${topic.title}".
+- Include a real comparative HTML <table> with practical metrics.
+- Write 4 clear, helpful FAQs and 3 industry sources.${internalLinkGuide}
+
+Return ONLY valid JSON matching this exact structure:
+{
+  "articleTitle": "Catchy, High-CTR Editorial Headline for ${topic.title} (50-70 chars)",
+  "excerpt": "Compelling 2-sentence summary tailored to ${topic.title}",
+  "body": "Complete 1500+ word HTML body with <h2>, <h3>, <h4>, <table>, <ol>, <ul>",
+  "seoTitle": "Keyword-rich title (50-60 chars)",
+  "seoDescription": "Engaging meta description (145-160 chars)",
+  "focusKeyword": "${topic.title}",
+  "imageAlt": "Descriptive alt text for ${topic.title}",
+  "faq": [
+    {"q": "Specific question about ${topic.title}?", "a": "Detailed answer (50+ words)..."},
+    {"q": "Second question about ${topic.title}?", "a": "Detailed answer (50+ words)..."},
+    {"q": "Third question about ${topic.title}?", "a": "Detailed answer (50+ words)..."},
+    {"q": "Fourth question about ${topic.title}?", "a": "Detailed answer (50+ words)..."}
+  ],
+  "sources": [
+    {"name": "Authoritative Reference 1", "url": "https://example.com/source1"},
+    {"name": "Authoritative Reference 2", "url": "https://example.com/source2"},
+    {"name": "Authoritative Reference 3", "url": "https://example.com/source3"}
+  ]
+}`;
+
         const response = await ai.models.generateContent({
           model: 'gemini-2.5-flash',
           contents: prompt,
           config: {
-            maxOutputTokens: 8192,
-            responseMimeType: 'application/json',
-            responseSchema: {
-              type: 'OBJECT',
-              properties: {
-                articleTitle: { type: 'STRING' },
-                excerpt: { type: 'STRING' },
-                body: { type: 'STRING' },
-                seoTitle: { type: 'STRING' },
-                seoDescription: { type: 'STRING' },
-                focusKeyword: { type: 'STRING' },
-                imageAlt: { type: 'STRING' },
-                faq: {
-                  type: 'ARRAY',
-                  items: {
-                    type: 'OBJECT',
-                    properties: {
-                      q: { type: 'STRING' },
-                      a: { type: 'STRING' }
-                    },
-                    required: ['q', 'a']
-                  }
-                },
-                sources: {
-                  type: 'ARRAY',
-                  items: {
-                    type: 'OBJECT',
-                    properties: {
-                      name: { type: 'STRING' },
-                      url: { type: 'STRING' }
-                    },
-                    required: ['name', 'url']
-                  }
-                }
-              },
-              required: ['articleTitle', 'excerpt', 'body', 'seoTitle', 'seoDescription', 'imageAlt', 'faq', 'sources']
-            }
+            responseMimeType: 'application/json'
           }
         });
 
         const rawText = response.text ? response.text.trim() : '';
-        const data = JSON.parse(rawText);
+        let cleanedJson = rawText;
+        if (cleanedJson.startsWith('```json')) {
+          cleanedJson = cleanedJson.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+        } else if (cleanedJson.startsWith('```')) {
+          cleanedJson = cleanedJson.replace(/^```\s*/, '').replace(/\s*```$/, '');
+        }
+
+        const data = JSON.parse(cleanedJson);
 
         if (data.articleTitle) topicTitle = data.articleTitle;
         if (data.body) body = data.body;
@@ -223,12 +186,12 @@ Also generate:
         if (data.seoTitle) seoTitle = data.seoTitle;
         if (data.seoDescription) seoDescription = data.seoDescription;
         if (data.imageAlt) imageAlt = data.imageAlt;
-        if (data.faq) faq = data.faq;
-        if (data.sources) sources = data.sources;
+        if (data.faq && Array.isArray(data.faq)) faq = data.faq;
+        if (data.sources && Array.isArray(data.sources)) sources = data.sources;
         
-        console.log('Successfully generated 1500+ word SEO article via Gemini API!');
+        console.log(`Successfully generated unique 1500+ word AI article for "${topicTitle}" via Gemini!`);
       } catch (aiErr) {
-        console.warn('Gemini API call failed, falling back to comprehensive structured template:', aiErr.message);
+        console.error('Gemini API call failed:', aiErr.message);
       }
     }
 
