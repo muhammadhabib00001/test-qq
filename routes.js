@@ -420,20 +420,24 @@ router.post('/admin/generate-keyword', isAdmin, async (req, res, next) => {
     const selectedCategory = category || 'Technology';
     const isAutoPublish = mode === 'auto';
     
-    // 1. Insert topic
-    await db.run(
+    // 1. Insert topic & get returned inserted ID
+    const topicResult = await db.run(
       "INSERT INTO topics (title, category, source_url, status) VALUES (?, ?, ?, ?)",
       [keyword.trim(), selectedCategory, 'https://custom-keyword', 'discovered']
     );
 
-    // 2. Fetch created topic ID
-    const topic = await db.get("SELECT id FROM topics WHERE title = ? ORDER BY id DESC LIMIT 1", [keyword.trim()]);
+    let topicId = topicResult && topicResult.lastID ? topicResult.lastID : null;
     
-    if (topic) {
-      // 3. Generate 1000-1500 word AI article + high-res image
-      await contentEngine.generateArticleFromTopic(topic.id);
+    if (!topicId) {
+      const topic = await db.get("SELECT id FROM topics WHERE title = ? ORDER BY id DESC LIMIT 1", [keyword.trim()]);
+      if (topic) topicId = topic.id;
+    }
+    
+    if (topicId) {
+      // 2. Generate 1000-1500 word AI article + high-res image
+      await contentEngine.generateArticleFromTopic(topicId);
       
-      // 4. If Auto Publish mode selected, set latest draft to published
+      // 3. If Auto Publish mode selected, set latest draft to published
       if (isAutoPublish) {
         await db.run("UPDATE articles SET status = 'published' WHERE status = 'draft'");
       }

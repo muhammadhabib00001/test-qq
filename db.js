@@ -175,22 +175,25 @@ const mockStore = {
 function run(sql, params = []) {
   if (isMockDb) {
     console.log('[MockDB Run]', sql, params);
-    // Basic mock handlers
+    let lastID = 1;
     if (sql.includes('INSERT INTO topics')) {
-      mockStore.topics.push({ id: mockStore.topics.length + 1, title: params[0], category: params[1], source_url: params[2], status: params[3] || 'discovered', created_at: new Date() });
+      lastID = mockStore.topics.length + 1;
+      mockStore.topics.push({ id: lastID, title: params[0], category: params[1], source_url: params[2], status: params[3] || 'discovered', created_at: new Date() });
     } else if (sql.includes('INSERT INTO articles')) {
+      lastID = mockStore.articles.length + 1;
       mockStore.articles.push({
-        id: mockStore.articles.length + 1,
+        id: lastID,
         title: params[0], slug: params[1], excerpt: params[2], body: params[3], category: params[4], tags: params[5],
         author_id: params[6], featured_image: params[7], status: params[8], seo_title: params[9], seo_description: params[10],
         image_alt: params[11], sources: params[12], faq: params[13], views: 0, created_at: new Date(), updated_at: new Date()
       });
     } else if (sql.includes('INSERT INTO logs')) {
+      lastID = mockStore.logs.length + 1;
       mockStore.logs.push({ level: params[0], message: params[1], created_at: new Date() });
     } else if (sql.includes('UPDATE settings')) {
       mockStore.settings[params[1]] = params[0];
     } else if (sql.includes('UPDATE topics SET status')) {
-      const topic = mockStore.topics.find(t => t.id === params[1]);
+      const topic = mockStore.topics.find(t => t.id == params[1]);
       if (topic) topic.status = params[0];
     } else if (sql.includes('UPDATE articles SET status =')) {
       if (sql.includes('WHERE id =')) {
@@ -218,7 +221,7 @@ function run(sql, params = []) {
         art.image_alt = params[7]; art.status = params[8]; art.updated_at = new Date();
       }
     }
-    return Promise.resolve({ lastID: 1 });
+    return Promise.resolve({ lastID });
   }
 
   return new Promise((resolve, reject) => {
@@ -279,8 +282,9 @@ function get(sql, params = []) {
       return Promise.resolve(mockStore.topics.find(t => t.id == params[0]) || null);
     } else if (sql.includes('SELECT id FROM topics WHERE status = \'discovered\'')) {
       return Promise.resolve(mockStore.topics.find(t => t.status === 'discovered') || null);
-    } else if (sql.includes('SELECT id FROM topics WHERE title = ?')) {
-      return Promise.resolve(mockStore.topics.find(t => t.title === params[0]) || null);
+    } else if (sql.includes('SELECT id FROM topics WHERE title = ?') || sql.includes('SELECT * FROM topics WHERE title = ?')) {
+      const match = mockStore.topics.slice().reverse().find(t => t.title.toLowerCase() === (params[0] || '').toLowerCase());
+      return Promise.resolve(match || null);
     }
     return Promise.resolve(null);
   }
