@@ -1,5 +1,40 @@
 <%- include('../partials/admin_header') %>
 
+<!-- Instant Custom Keyword Generator -->
+<div class="bg-gradient-to-r from-indigo-900 via-indigo-800 to-purple-900 rounded-2xl p-6 text-white shadow-lg mb-8">
+  <div class="max-w-3xl">
+    <h2 class="text-xl font-bold flex items-center gap-2 mb-2">
+      <i class="fa-solid fa-wand-magic-sparkles text-amber-400"></i> Instant Keyword AI Article & Image Generator
+    </h2>
+    <p class="text-indigo-200 text-sm mb-4">
+      Enter any topic or keyword below. Confirming will instantly generate a comprehensive 1000–1500 word SEO-optimized article complete with a high-resolution featured image and publish it directly to your site.
+    </p>
+    <form action="/admin/generate-keyword" method="POST" class="flex flex-col sm:flex-row gap-3">
+      <input 
+        type="text" 
+        name="keyword" 
+        placeholder="Enter keyword or topic (e.g. Artificial Intelligence in Healthcare 2026)" 
+        required 
+        class="flex-grow px-4 py-3 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-400 font-medium text-sm"
+      >
+      <select name="category" class="px-4 py-3 rounded-xl text-gray-900 focus:outline-none font-medium text-sm bg-white">
+        <option value="Technology">Technology</option>
+        <option value="Business">Business</option>
+        <option value="Lifestyle">Lifestyle</option>
+        <option value="Travel">Travel</option>
+        <option value="Education">Education</option>
+        <option value="Home & Garden">Home & Garden</option>
+      </select>
+      <button 
+        type="submit" 
+        class="bg-amber-400 hover:bg-amber-300 text-gray-900 font-bold px-6 py-3 rounded-xl transition flex items-center justify-center gap-2 text-sm flex-shrink-0 shadow"
+      >
+        <i class="fa-solid fa-paper-plane"></i> Generate & Post Article
+      </button>
+    </form>
+  </div>
+</div>
+
 <!-- Statistics Grid -->
 <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
   <div class="bg-white rounded-xl p-6 border border-gray-200 shadow-sm flex items-center justify-between">

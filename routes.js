@@ -383,4 +383,35 @@ router.post('/admin/trigger-automation', isAdmin, async (req, res, next) => {
   }
 });
 
+// Instant Custom Keyword Generator Route
+router.post('/admin/generate-keyword', isAdmin, async (req, res, next) => {
+  const { keyword, category } = req.body;
+  if (!keyword) return res.redirect('/admin');
+
+  try {
+    const selectedCategory = category || 'Technology';
+    
+    // 1. Insert topic
+    const topicResult = await db.run(
+      "INSERT INTO topics (title, category, source_url, status) VALUES (?, ?, ?, ?)",
+      [keyword.trim(), selectedCategory, 'https://custom-keyword', 'discovered']
+    );
+
+    // 2. Fetch created topic ID
+    const topic = await db.get("SELECT id FROM topics WHERE title = ? ORDER BY id DESC LIMIT 1", [keyword.trim()]);
+    
+    if (topic) {
+      // 3. Generate 1000-1500 word AI article + high-res image
+      await contentEngine.generateArticleFromTopic(topic.id);
+      
+      // 4. Set latest generated draft to published status
+      await db.run("UPDATE articles SET status = 'published' WHERE status = 'draft'");
+    }
+
+    res.redirect('/admin');
+  } catch (err) {
+    next(err);
+  }
+});
+
 module.exports = router;
