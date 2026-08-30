@@ -31,9 +31,55 @@ const mockStore = {
     { id: 1, name: 'Jane Doe', slug: 'jane-doe', bio: 'Senior Editor and Technical Writer with 10+ years of experience in the publishing industry.', role: 'Senior Editor', avatar: '/images/avatars/jane.jpg' },
     { id: 2, name: 'John Smith', slug: 'john-smith', bio: 'Travel blogger, foodie and freelance lifestyle journalist based in San Francisco.', role: 'Contributing Writer', avatar: '/images/avatars/john.jpg' }
   ],
-  articles: [],
-  topics: [],
-  logs: [],
+  articles: [
+    {
+      id: 1,
+      title: 'The Future of AI Assistants in Everyday Life',
+      slug: 'the-future-of-ai-assistants-in-everyday-life',
+      excerpt: 'Discover how modern artificial intelligence tools are reshaping daily productivity, automation, and digital lifestyles.',
+      body: '<h2>Introduction</h2><p>Artificial intelligence is moving rapidly from specialized labs directly into everyday application. From automated writing tools to smart home controls, AI assistants are establishing new paradigms for personal productivity.</p><h2>Key Advancements</h2><p>Modern language models can summarize documents, generate code, assist with scheduling, and curate personalized news feeds effortless.</p><blockquote>"Automation is not about replacing human creativity, but amplifying it."</blockquote>',
+      category: 'Technology',
+      tags: 'ai,tech,future',
+      author_id: 1,
+      featured_image: '/images/placeholder.webp',
+      status: 'published',
+      seo_title: 'The Future of AI Assistants in Everyday Life | Magazine',
+      seo_description: 'Discover how modern AI tools reshape productivity and lifestyle.',
+      image_alt: 'AI assistant graphic',
+      sources: '[]',
+      faq: '[]',
+      views: 142,
+      created_at: new Date(Date.now() - 86400000),
+      updated_at: new Date(Date.now() - 86400000)
+    },
+    {
+      id: 2,
+      title: 'How to Manage Remote Teams: A Business Guide',
+      slug: 'how-to-manage-remote-teams-a-business-guide',
+      excerpt: 'Essential frameworks, communication tools, and workflow strategies for leading distributed workforces successfully.',
+      body: '<h2>Introduction</h2><p>Managing remote teams requires deliberate communication protocols and outcome-focused performance tracking.</p><h2>Best Practices</h2><ul><li>Set clear daily objectives</li><li>Maintain async documentation</li><li>Encourage regular virtual check-ins</li></ul>',
+      category: 'Business',
+      tags: 'management,remote,business',
+      author_id: 2,
+      featured_image: '/images/placeholder.webp',
+      status: 'published',
+      seo_title: 'How to Manage Remote Teams: A Business Guide | Magazine',
+      seo_description: 'Essential frameworks and workflow strategies for leading remote teams.',
+      image_alt: 'Remote team management',
+      sources: '[]',
+      faq: '[]',
+      views: 89,
+      created_at: new Date(Date.now() - 172800000),
+      updated_at: new Date(Date.now() - 172800000)
+    }
+  ],
+  topics: [
+    { id: 1, title: 'The Future of AI Assistants in Everyday Life', category: 'Technology', source_url: 'https://example.com', status: 'approved', created_at: new Date() },
+    { id: 2, title: 'Exploring the Hidden Gems of Kyoto, Japan', category: 'Travel', source_url: 'https://example.com', status: 'discovered', created_at: new Date() }
+  ],
+  logs: [
+    { level: 'info', message: 'Database initialized with seed content.', created_at: new Date() }
+  ],
   settings: {
     articles_per_day: '2',
     auto_image_gen: 'true',
