@@ -190,6 +190,10 @@ function all(sql, params = []) {
 }
 
 async function initDb() {
+  if (isMockDb) {
+    console.log('Mock database initialized successfully.');
+    return Promise.resolve();
+  }
   // Create tables
   await run(`
     CREATE TABLE IF NOT EXISTS authors (
