@@ -236,10 +236,10 @@ router.get('/admin/logout', (req, res) => {
 router.get('/admin', isAdmin, async (req, res, next) => {
   try {
     const counts = {
-      topics: (await db.get("SELECT COUNT(*) as count FROM topics")).count,
-      generated: (await db.get("SELECT COUNT(*) as count FROM articles")).count,
-      pending: (await db.get("SELECT COUNT(*) as count FROM articles WHERE status = 'draft'")).count,
-      published: (await db.get("SELECT COUNT(*) as count FROM articles WHERE status = 'published'")).count,
+      topics: (await db.get("SELECT COUNT(*) as count FROM topics") || { count: 0 }).count || 0,
+      generated: (await db.get("SELECT COUNT(*) as count FROM articles") || { count: 0 }).count || 0,
+      pending: (await db.get("SELECT COUNT(*) as count FROM articles WHERE status = 'draft'") || { count: 0 }).count || 0,
+      published: (await db.get("SELECT COUNT(*) as count FROM articles WHERE status = 'published'") || { count: 0 }).count || 0,
     };
 
     const topicsList = await db.all("SELECT * FROM topics ORDER BY created_at DESC LIMIT 10");
@@ -261,8 +261,16 @@ router.get('/admin', isAdmin, async (req, res, next) => {
 // Controls & Settings Panel
 router.get('/admin/settings', isAdmin, async (req, res, next) => {
   try {
-    const rawSettings = await db.all('SELECT * FROM settings');
-    const settings = {};
+    const rawSettings = await db.all('SELECT * FROM settings') || [];
+    const settings = {
+      articles_per_day: '2',
+      auto_image_gen: 'true',
+      auto_seo_gen: 'true',
+      internal_linking: 'true',
+      approval_workflow: 'true',
+      publishing_schedule: '09:00',
+      categories: 'Technology,Business,Lifestyle,Travel,Entertainment,Food,Home & Garden,Education,How-To'
+    };
     rawSettings.forEach(s => settings[s.key] = s.value);
     
     res.render('admin/settings', {
