@@ -54,9 +54,11 @@ app.use('/', routes);
 
 // Boot DB & Server
 db.initDb().then(() => {
-  app.listen(PORT, () => {
-    console.log(`Server is running at http://localhost:${PORT}`);
-  });
+  console.log('Database successfully initialized.');
 }).catch(err => {
-  console.error('Failed to initialize database:', err);
+  console.warn('Database initialization warning (likely read-only serverless environment):', err.message);
+});
+
+app.listen(PORT, () => {
+  console.log(`Server is running at http://localhost:${PORT}`);
 });
