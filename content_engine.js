@@ -114,24 +114,41 @@ async function generateArticleFromTopic(topicId) {
       console.log('Generating content via Google Gemini API...');
       const ai = new GoogleGenAI({ apiKey });
       
-      const prompt = `Write an authoritative, highly comprehensive, 1500-word SEO article on: "${topic.title}" in the category "${topic.category}".
+      const prompt = `You are a world-class Senior SEO Strategist and Content Editor. Write an in-depth, authoritative, 1500-word SEO-optimized pillar guide on: "${topic.title}" in the category "${topic.category}".
 
-STRICT LENGTH REQUIREMENT: The "body" HTML content MUST contain at least 1200 to 1800 words. Write extensive, deeply detailed paragraphs for every section with real-world statistics, key industry metrics, step-by-step frameworks, expert commentary, comparison tables, and semantic HTML (<h2>, <h3>, <p>, <ul>, <ol>, <table>).${internalLinkGuide}
+CRITICAL SEO & STRUCTURAL REQUIREMENTS:
+1. TARGET FEATURED SNIPPET (Position 0 Optimization):
+   - At the beginning of the "body", include a dedicated featured snippet box formatted as:
+     <div class="bg-indigo-50 border-l-4 border-indigo-600 p-5 my-6 rounded-r-xl"><h3 class="text-indigo-900 font-bold text-base mb-2">⚡ Quick Summary & Key Takeaways</h3><p class="text-gray-800 text-sm leading-relaxed mb-3">[A concise 45-55 word direct definition answer addressing "${topic.title}"]</p><ul class="list-disc pl-5 text-xs text-gray-700 space-y-1"><li><strong>Core Focus:</strong> [Key benefit]</li><li><strong>Ideal For:</strong> [Target audience]</li><li><strong>Estimated Impact:</strong> [Quantifiable metric]</li></ul></div>
 
-Structure requirements for "body":
-1. Executive Summary & Industry Context (300+ words)
-2. Historical Background & Technological Shift (250+ words)
-3. Core Mechanisms & In-Depth Technical Breakdown (350+ words with comparison <table>)
-4. Step-by-Step Practical Implementation Blueprint (300+ words with <ol> and <ul>)
-5. Key Challenges, Pitfalls & Defensive Mitigation Strategies (250+ words)
-6. Future Market Trends & Strategic 5-Year Outlook (200+ words)
+2. HEADING HIERARCHY (H2 to H5 structure):
+   - Organize the article cleanly with logical heading progression:
+     * <h2> Main Pillar Topics (6 distinct sections)
+     * <h3> Sub-frameworks and Specific Core Components within sections
+     * <h4> Technical Steps, Tool Implementations, or Case Analyses
+     * <h5> Specific Implementation Tips or Micro-notes where appropriate
+
+3. TOTAL WORD COUNT & QUALITY:
+   - The "body" HTML content MUST contain at least 1200 to 1800 words.
+   - Include comparison <table> elements, ordered <ol> implementation checklists, bolded key phrases (<strong>), and contextual paragraphs.
+
+4. INTERNAL LINKING REQUIREMENT:
+   ${internalLinkGuide}
+
+SECTIONS TO COVER IN "body":
+- <h2>1. Definitive Overview & Industry Significance</h2> (with <h3>, <h4> subheadings and Featured Snippet box)
+- <h2>2. Evolution, Architectural Drivers & Market Shifts</h2> (with <h3> historical timeline and comparison matrix)
+- <h2>3. Core Components & Deep Technical Breakdown</h2> (with <h3> architecture, <h4> specifications, and comparison <table>)
+- <h2>4. Step-by-Step Practical Implementation Roadmap</h2> (with <h3> phase guides and <ol> actionable steps)
+- <h2>5. Critical Challenges, Common Pitfalls & Risk Mitigation</h2> (with <h3> security/compliance and <h4> defensive tips)
+- <h2>6. Future Trends, Emerging Technologies & 5-Year Strategic Outlook</h2> (with <h3> predictive outlook and <h5> expert summary)
 
 Also generate:
-- "seoTitle": Keyword-rich Title (50-60 chars)
-- "seoDescription": High-CTR Meta Description (145-160 chars)
+- "seoTitle": Compelling CTR Title with Primary Keyword and Year 2026 (50-60 chars)
+- "seoDescription": High-CTR Search Intent Meta Description (145-160 chars)
 - "focusKeyword": Primary target SEO keyword phrase
-- "faq": Array of 4 comprehensive FAQs with 50+ word answers each.
-- "sources": 3 authoritative industry references.`;
+- "faq": Array of 4 comprehensive FAQs with 50+ word direct answers each (formatted for Google FAQ Schema).
+- "sources": 3 authoritative industry references with realistic names and URLs.`;
 
       try {
         const response = await ai.models.generateContent({
@@ -197,12 +214,26 @@ Also generate:
     // Comprehensive long-form template fallback (1200+ words) if API key is not present or API call fails
     if (!body) {
       body = `
-        <h2>1. Executive Summary & Industry Context</h2>
+        <div class="bg-indigo-50 border-l-4 border-indigo-600 p-5 my-6 rounded-r-xl not-prose">
+          <h3 class="text-indigo-900 font-bold text-base mb-2">⚡ Quick Summary & Key Takeaways</h3>
+          <p class="text-gray-800 text-sm leading-relaxed mb-3"><strong>${topic.title}</strong> is a high-impact framework designed to accelerate workflow automation, minimize error margins, and scale operational efficiency by up to 48% across modern digital ecosystems.</p>
+          <ul class="list-disc pl-5 text-xs text-gray-700 space-y-1">
+            <li><strong>Core Strategic Focus:</strong> Operational resilience and intelligent process automation.</li>
+            <li><strong>Target Audience:</strong> Technology leads, developers, project managers, and growth strategists.</li>
+            <li><strong>Measurable Impact:</strong> Up to 5x faster turnaround times and reduced operational friction.</li>
+          </ul>
+        </div>
+
+        <h2>1. Definitive Overview & Industry Context</h2>
         <p>In today's rapidly changing digital landscape, understanding the full scope of <strong>${topic.title}</strong> has transitioned from an optional advantage into a core strategic necessity. Across technological, commercial, and operational domains, organizations and professionals who adapt to these frameworks achieve significantly higher efficiency, lower error rates, and superior overall output quality.</p>
+        
+        <h3>1.1 Strategic Importance & Macro Trends</h3>
         <p>This comprehensive report provides an exhaustive, data-driven analysis of key principles, strategic methodologies, real-world case applications, and future projections surrounding ${topic.title}. Whether evaluating initial adoption or scaling existing infrastructure, the insights detailed below offer an actionable roadmap for sustained growth.</p>
+        
+        <h4>1.1.1 Industry Performance Benchmarks</h4>
         <p>Recent benchmarks across industry leaders reveal that structured, automated implementations yield up to a 48% reduction in task completion times while enhancing compliance and cross-team collaboration. As digital ecosystems become increasingly interconnected, establishing a robust operational foundation is paramount.</p>
         
-        <h2>2. Historical Evolution and Technological Context</h2>
+        <h2>2. Evolution, Historical Drivers & Market Shifts</h2>
         <p>To evaluate current breakthroughs, it is essential to review the evolutionary trajectory of ${topic.title}. Over the past decade, three distinct phases have defined modern development:</p>
         <ul>
           <li><strong>Phase 1 - Legacy Operations (2015–2018):</strong> Characterized by manual workflows, static configuration files, and fragmented data silos that generated high operational friction and unpredictable delivery timelines.</li>
@@ -210,7 +241,7 @@ Also generate:
           <li><strong>Phase 3 - Intelligent Ecosystems (2023–Present):</strong> Powered by real-time predictive analytics, native AI assistance, and dynamic auto-scaling frameworks that adapt dynamically to workload fluctuations.</li>
         </ul>
 
-        <h2>3. In-Depth Technical & Practical Breakdown</h2>
+        <h2>3. Core Components & Deep Technical Breakdown</h2>
         <p>Evaluating strategic options requires comparing operational methodologies across performance efficiency, complexity, risk management, and scalable ROI. The comprehensive matrix below outlines key operational dimensions across modern implementation models:</p>
 
         <table>

@@ -36,28 +36,103 @@
   </style>
 
   <% if (typeof article !== 'undefined') { %>
-    <!-- SEO JSON-LD Schema Markup -->
+    <!-- Primary SEO Meta Tags -->
+    <meta name="title" content="<%= article.seo_title || article.title %>">
+    <meta name="description" content="<%= article.seo_description || article.excerpt %>">
+    <meta name="keywords" content="<%= article.tags || article.category %>">
+    <link rel="canonical" href="https://test-qq-beta.vercel.app/article/<%= article.slug %>">
+
+    <!-- Open Graph / Facebook / LinkedIn -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://test-qq-beta.vercel.app/article/<%= article.slug %>">
+    <meta property="og:title" content="<%= article.seo_title || article.title %>">
+    <meta property="og:description" content="<%= article.seo_description || article.excerpt %>">
+    <meta property="og:image" content="<%= article.featured_image %>">
+    <meta property="article:published_time" content="<%= new Date(article.created_at).toISOString() %>">
+    <meta property="article:section" content="<%= article.category %>">
+
+    <!-- Twitter Card -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://test-qq-beta.vercel.app/article/<%= article.slug %>">
+    <meta property="twitter:title" content="<%= article.seo_title || article.title %>">
+    <meta property="twitter:description" content="<%= article.seo_description || article.excerpt %>">
+    <meta property="twitter:image" content="<%= article.featured_image %>">
+
+    <!-- Comprehensive Article & BreadcrumbList Schema.org JSON-LD -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "BlogPosting",
-      "headline": "<%= article.title %>",
-      "description": "<%= article.seo_description %>",
-      "image": "<%= article.featured_image %>",
-      "author": {
-        "@type": "Person",
-        "name": "<%= article.author_name %>"
-      },
-      "publisher": {
-        "@type": "Organization",
-        "name": "The Editorial Magazine",
-        "logo": {
-          "@type": "ImageObject",
-          "url": "/images/logo.png"
+      "@graph": [
+        {
+          "@type": "Article",
+          "@id": "https://test-qq-beta.vercel.app/article/<%= article.slug %>#article",
+          "isPartOf": {
+            "@type": "WebSite",
+            "@id": "https://test-qq-beta.vercel.app/#website",
+            "name": "The Editorial Magazine",
+            "url": "https://test-qq-beta.vercel.app/"
+          },
+          "headline": "<%= (article.seo_title || article.title).replace(/"/g, '\\"') %>",
+          "description": "<%= (article.seo_description || article.excerpt).replace(/"/g, '\\"') %>",
+          "image": "<%= article.featured_image %>",
+          "author": {
+            "@type": "Person",
+            "name": "<%= article.author_name || 'Editorial Staff' %>"
+          },
+          "publisher": {
+            "@type": "Organization",
+            "name": "The Editorial Magazine",
+            "logo": {
+              "@type": "ImageObject",
+              "url": "https://test-qq-beta.vercel.app/images/logo.png"
+            }
+          },
+          "datePublished": "<%= new Date(article.created_at).toISOString() %>",
+          "dateModified": "<%= new Date(article.updated_at || article.created_at).toISOString() %>",
+          "mainEntityOfPage": "https://test-qq-beta.vercel.app/article/<%= article.slug %>",
+          "articleSection": "<%= article.category %>"
+        },
+        {
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "position": 1,
+              "name": "Home",
+              "item": "https://test-qq-beta.vercel.app/"
+            },
+            {
+              "@type": "ListItem",
+              "position": 2,
+              "name": "<%= article.category %>",
+              "item": "https://test-qq-beta.vercel.app/category/<%= article.category %>"
+            },
+            {
+              "@type": "ListItem",
+              "position": 3,
+              "name": "<%= (article.title).replace(/"/g, '\\"') %>",
+              "item": "https://test-qq-beta.vercel.app/article/<%= article.slug %>"
+            }
+          ]
         }
-      },
-      "datePublished": "<%= new Date(article.created_at).toISOString() %>",
-      "dateModified": "<%= new Date(article.updated_at).toISOString() %>"
+        <% if (typeof faq !== 'undefined' && faq && faq.length > 0) { %>,
+        {
+          "@type": "FAQPage",
+          "mainEntity": [
+            <% faq.forEach((item, idx) => { %>
+              {
+                "@type": "Question",
+                "name": "<%= item.q.replace(/"/g, '\\"') %>",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "<%= item.a.replace(/"/g, '\\"') %>"
+                }
+              }<%= idx < faq.length - 1 ? ',' : '' %>
+            <% }) %>
+          ]
+        }
+        <% } %>
+      ]
     }
     </script>
   <% } %>
