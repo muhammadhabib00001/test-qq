@@ -111,7 +111,11 @@ async function generateArticleFromTopic(topicId) {
     let sources = [];
     let excerpt = `An insightful look at ${topicTitle} to optimize your workflow and increase general knowledge.`;
 
-    const apiKey = process.env.GEMINI_API_KEY;
+    let apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      const apiKeySetting = await db.get("SELECT value FROM settings WHERE key = 'gemini_api_key'");
+      if (apiKeySetting && apiKeySetting.value) apiKey = apiKeySetting.value;
+    }
 
     // Fetch existing articles for contextual SEO internal linking
     const existingArticles = await db.all("SELECT id, title, slug, category FROM articles WHERE status = 'published' LIMIT 10") || [];

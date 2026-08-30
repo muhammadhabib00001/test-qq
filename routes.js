@@ -269,12 +269,13 @@ router.get('/admin/settings', isAdmin, async (req, res, next) => {
   try {
     const rawSettings = await db.all('SELECT * FROM settings') || [];
     const settings = {
-      articles_per_day: '2',
+      articles_per_day: '6',
       auto_image_gen: 'true',
       auto_seo_gen: 'true',
       internal_linking: 'true',
-      approval_workflow: 'true',
+      approval_workflow: 'false',
       publishing_schedule: '09:00',
+      gemini_api_key: process.env.GEMINI_API_KEY || '',
       categories: 'Technology,Business,Lifestyle,Travel,Entertainment,Food,Home & Garden,Education,How-To'
     };
     rawSettings.forEach(s => settings[s.key] = s.value);
@@ -290,10 +291,13 @@ router.get('/admin/settings', isAdmin, async (req, res, next) => {
 
 router.post('/admin/settings', isAdmin, async (req, res, next) => {
   try {
-    const keys = ['articles_per_day', 'auto_image_gen', 'auto_seo_gen', 'internal_linking', 'approval_workflow', 'publishing_schedule'];
+    const keys = ['articles_per_day', 'auto_image_gen', 'auto_seo_gen', 'internal_linking', 'approval_workflow', 'publishing_schedule', 'gemini_api_key'];
     for (const key of keys) {
-      const val = req.body[key] || 'false';
+      const val = req.body[key] || (key === 'gemini_api_key' ? '' : 'false');
       await db.run('UPDATE settings SET value = ? WHERE key = ?', [val, key]);
+      if (key === 'gemini_api_key' && val) {
+        process.env.GEMINI_API_KEY = val;
+      }
     }
     res.redirect('/admin/settings');
   } catch (err) {
