@@ -3,7 +3,12 @@ const path = require('path');
 const db = require('./db');
 const Parser = require('rss-parser');
 const parser = new Parser();
-const sharp = require('sharp');
+let sharp;
+try {
+  sharp = require('sharp');
+} catch (e) {
+  console.warn('Sharp image optimization package failed to load on this serverless environment. Image processing will be bypassed.');
+}
 
 // Simple fetch or mock fetch function to grab trending topics if key is missing
 async function discoverTopics() {
@@ -70,6 +75,10 @@ async function discoverTopics() {
 // Resizes and converts standard formats to WebP
 async function processFeaturedImage(inputPath, outputFilename) {
   try {
+    if (!sharp) {
+      console.warn('Sharp is not loaded. Bypassing image processing.');
+      return '/images/placeholder.webp';
+    }
     const outputDir = path.join(__dirname, 'public', 'images', 'uploads');
     if (!fs.existsSync(outputDir)) {
       fs.mkdirSync(outputDir, { recursive: true });
@@ -174,16 +183,20 @@ async function generateArticleFromTopic(topicId) {
     if (!fs.existsSync(placeholderPath)) {
       // Create a solid color WebP placeholder using sharp if possible
       try {
-        await sharp({
-          create: {
-            width: 1200,
-            height: 630,
-            channels: 4,
-            background: { r: 52, g: 152, b: 219, alpha: 1 }
-          }
-        }).webp().toFile(placeholderPath);
+        if (sharp) {
+          await sharp({
+            create: {
+              width: 1200,
+              height: 630,
+              channels: 4,
+              background: { r: 52, g: 152, b: 219, alpha: 1 }
+            }
+          }).webp().toFile(placeholderPath);
+        } else {
+          fs.writeFileSync(placeholderPath, '');
+        }
       } catch (err) {
-        console.warn('Could not auto-generate placeholder image via sharp, writing raw file.');
+        console.warn('Could not auto-generate placeholder image, writing raw file.');
         fs.writeFileSync(placeholderPath, '');
       }
     }
