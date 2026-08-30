@@ -1,48 +1,46 @@
-const fs = require('fs');
-const path = require('path');
 const db = require('./db');
-const Parser = require('rss-parser');
-const parser = new Parser();
-let sharp;
+const { IS_VERCEL } = require('./config');
+
+let Parser;
+let parser;
 try {
-  sharp = require('sharp');
+  Parser = require('rss-parser');
+  parser = new Parser();
 } catch (e) {
-  console.warn('Sharp image optimization package failed to load on this serverless environment. Image processing will be bypassed.');
+  console.warn('rss-parser failed to load. RSS discovery will use fallback topics.');
 }
 
 // Simple fetch or mock fetch function to grab trending topics if key is missing
 async function discoverTopics() {
   console.log('Discovering potential topics...');
-  const approvedSources = [
-    'https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml',
-    'https://rss.nytimes.com/services/xml/rss/nyt/PersonalTech.xml',
-    'https://rss.nytimes.com/services/xml/rss/nyt/Science.xml'
-  ];
-
   let discoveredCount = 0;
-  
-  // Try to parse RSS feeds
-  for (const source of approvedSources) {
-    try {
-      console.log(`Parsing feed: ${source}`);
-      const feed = await parser.parseURL(source);
-      for (const item of feed.items.slice(0, 5)) {
-        // Validate and clean categories
-        let matchedCategory = 'Technology';
-        const title = item.title;
-        
-        // Simple duplicates filter
-        const existing = await db.get('SELECT id FROM topics WHERE title = ?', [title]);
-        if (!existing) {
-          await db.run(
-            'INSERT INTO topics (title, category, source_url, status) VALUES (?, ?, ?, ?)',
-            [title, matchedCategory, item.link, 'discovered']
-          );
-          discoveredCount++;
+
+  if (parser) {
+    const approvedSources = [
+      'https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml',
+      'https://rss.nytimes.com/services/xml/rss/nyt/PersonalTech.xml',
+      'https://rss.nytimes.com/services/xml/rss/nyt/Science.xml'
+    ];
+
+    for (const source of approvedSources) {
+      try {
+        console.log(`Parsing feed: ${source}`);
+        const feed = await parser.parseURL(source);
+        for (const item of feed.items.slice(0, 5)) {
+          let matchedCategory = 'Technology';
+          const title = item.title;
+          const existing = await db.get('SELECT id FROM topics WHERE title = ?', [title]);
+          if (!existing) {
+            await db.run(
+              'INSERT INTO topics (title, category, source_url, status) VALUES (?, ?, ?, ?)',
+              [title, matchedCategory, item.link, 'discovered']
+            );
+            discoveredCount++;
+          }
         }
+      } catch (err) {
+        console.warn(`Error scraping RSS source ${source}:`, err.message);
       }
-    } catch (err) {
-      console.warn(`Error scraping RSS source ${source}:`, err.message);
     }
   }
 
@@ -72,31 +70,6 @@ async function discoverTopics() {
   return discoveredCount;
 }
 
-// Resizes and converts standard formats to WebP
-async function processFeaturedImage(inputPath, outputFilename) {
-  try {
-    if (!sharp) {
-      console.warn('Sharp is not loaded. Bypassing image processing.');
-      return '/images/placeholder.webp';
-    }
-    const outputDir = path.join(__dirname, 'public', 'images', 'uploads');
-    if (!fs.existsSync(outputDir)) {
-      fs.mkdirSync(outputDir, { recursive: true });
-    }
-    const outputPath = path.join(outputDir, outputFilename);
-    
-    await sharp(inputPath)
-      .resize(1200, 630, { fit: 'cover' }) // Standard social/open graph dimensions
-      .webp({ quality: 80 })
-      .toFile(outputPath);
-
-    return `/images/uploads/${outputFilename}`;
-  } catch (err) {
-    console.error('Error optimizing image:', err);
-    return null;
-  }
-}
-
 // Orchestrator for content creation workflow
 async function generateArticleFromTopic(topicId) {
   const topic = await db.get('SELECT * FROM topics WHERE id = ?', [topicId]);
@@ -106,21 +79,16 @@ async function generateArticleFromTopic(topicId) {
   await db.run('UPDATE topics SET status = ? WHERE id = ?', ['generating', topicId]);
 
   try {
-    // Check settings for features
     const autoSeoSetting = await db.get("SELECT value FROM settings WHERE key = 'auto_seo_gen'");
     const autoSeo = autoSeoSetting ? autoSeoSetting.value === 'true' : true;
-    const autoImageSetting = await db.get("SELECT value FROM settings WHERE key = 'auto_image_gen'");
-    const autoImage = autoImageSetting ? autoImageSetting.value === 'true' : true;
     const authors = await db.all('SELECT id FROM authors') || [{ id: 1 }];
     const randomAuthor = authors[Math.floor(Math.random() * authors.length)];
 
-    // Structured fields
     const slug = topic.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
     const seoTitle = autoSeo ? `${topic.title} | The Modern Magazine` : topic.title;
     const seoDescription = `Learn about ${topic.title} in this expert guided article. We explore the latest insights and step-by-step guidance.`;
     const imageAlt = `Featured graphic representation for ${topic.title}`;
     
-    // Simulate/Generate Body Content
     const body = `
       <h2>Introduction</h2>
       <p>In today's fast-paced world, understanding <strong>${topic.title}</strong> is more critical than ever. Whether you are a seasoned expert or just beginning to explore the subject, staying informed helps you navigate the options available and make better decisions.</p>
@@ -173,47 +141,8 @@ async function generateArticleFromTopic(topicId) {
       { name: "Academic Research Hub", url: "https://example.com/research-hub" }
     ]);
 
-    // Mock image generation or handling placeholder
-    let finalImageUrl = '/images/placeholder.webp';
-    
-    // Write placeholder file if not exists
-    const placeholderDir = path.join(__dirname, 'public', 'images');
-    if (!fs.existsSync(placeholderDir)) {
-      fs.mkdirSync(placeholderDir, { recursive: true });
-    }
-    const placeholderPath = path.join(placeholderDir, 'placeholder.webp');
-    if (!fs.existsSync(placeholderPath)) {
-      // Create a solid color WebP placeholder using sharp if possible
-      try {
-        if (sharp) {
-          await sharp({
-            create: {
-              width: 1200,
-              height: 630,
-              channels: 4,
-              background: { r: 52, g: 152, b: 219, alpha: 1 }
-            }
-          }).webp().toFile(placeholderPath);
-        } else {
-          fs.writeFileSync(placeholderPath, '');
-        }
-      } catch (err) {
-        console.warn('Could not auto-generate placeholder image, writing raw file.');
-        fs.writeFileSync(placeholderPath, '');
-      }
-    }
+    const finalImageUrl = '/images/placeholder.webp';
 
-    if (autoImage) {
-      // Simulate WebP generation and optimization
-      const uniqueName = `image-${Date.now()}.webp`;
-      const tempPath = path.join(placeholderDir, 'placeholder.webp');
-      const processed = await processFeaturedImage(tempPath, uniqueName);
-      if (processed) {
-        finalImageUrl = processed;
-      }
-    }
-
-    // Insert article draft into local db
     await db.run(
       `INSERT INTO articles (title, slug, excerpt, body, category, tags, author_id, featured_image, status, seo_title, seo_description, image_alt, sources, faq)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -226,7 +155,7 @@ async function generateArticleFromTopic(topicId) {
         'automation,guide',
         randomAuthor ? randomAuthor.id : 1,
         finalImageUrl,
-        'draft', // Always default to draft for Editorial Review
+        'draft',
         seoTitle,
         seoDescription,
         imageAlt,
@@ -249,6 +178,5 @@ async function generateArticleFromTopic(topicId) {
 
 module.exports = {
   discoverTopics,
-  generateArticleFromTopic,
-  processFeaturedImage
+  generateArticleFromTopic
 };
